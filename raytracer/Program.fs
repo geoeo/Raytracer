@@ -1,4 +1,4 @@
-﻿// Learn more about F# at http://fsharp.org
+﻿// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
 
 open SixLabors.ImageSharp
 open System.IO
