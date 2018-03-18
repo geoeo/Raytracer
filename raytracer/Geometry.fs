@@ -15,13 +15,12 @@ type Ray =
     struct
         val Origin : Vector3
         val Direction : Vector3
-        val Parameter : float32
 
-        new(origin, dir, t) = { Origin = origin; Direction = normalized(dir); Parameter = unitParameter(t) }
+        new(origin, dir) = { Origin = origin; Direction = normalized(dir) }
 
     end
 
 
 
-let intersectSphere (ray : Ray) ((sphereCenter,radius) : Sphere) =
-    ((ray.Origin + ray.Parameter*ray.Direction) - sphereCenter).Length() <= radius
+let intersectSphere (t : float32) (ray : Ray) ((sphereCenter,radius) : Sphere) =
+    ((ray.Origin + t*ray.Direction) - sphereCenter).Length() <= radius
