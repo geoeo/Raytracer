@@ -2,6 +2,8 @@
 
 open SixLabors.ImageSharp
 open System.IO
+open System
+open System.Numerics
 
 let width = 640
 let height = 480

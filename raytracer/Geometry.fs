@@ -1,7 +1,7 @@
 module Geometry
 
 open System.Numerics
-open GeometryNumerics
+open Numerics
 
 
 
