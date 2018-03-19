@@ -19,7 +19,7 @@ let pixelScreen x_ndc y_ndc = 2.0f*x_ndc-1.0f , 1.0f-2.0f*y_ndc
 let aspectRatio (width:float32) (height:float32) = width/height
 
 // pixel coordiantes / sample points in world space
-let pixelCamera (x_screen:float32) (y_screen:float32) aspectRatio fov =
+let pixelCamera x_screen y_screen aspectRatio fov =
     x_screen*aspectRatio*MathF.Tan(fov/2.0f) , y_screen*MathF.Tan(fov/2.0f)
 
 let rayDirection cameraPixel_x cameraPixel_y =
