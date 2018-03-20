@@ -2,3 +2,4 @@
 .vscode/*
 raytracer/bin/*
 raytracer/obj/*
+raytracer/*.jpg
