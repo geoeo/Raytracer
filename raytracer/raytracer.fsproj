@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="PixelConversions.fs" />
     <Compile Include="Numerics.fs" />
     <Compile Include="Geometry.fs" />
     <Compile Include="Program.fs" />
