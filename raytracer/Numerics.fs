@@ -11,6 +11,13 @@ let unitParameter (value : float32) =
 
 let round (num :float32) (digits:int) = MathF.Round(num,digits)
 
+let smallestNonNegative (a:float32,b:float32) =
+    if a < 0.0f then b
+    else if b < 0.0f then a
+    else if a <= b then a
+    else b
+
+
 // ray direction wrt to camera
 let rayDirection cameraPixel_x cameraPixel_y =
     Vector3.Normalize(Vector3(cameraPixel_x,cameraPixel_y,-1.0f))
