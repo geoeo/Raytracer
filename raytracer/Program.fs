@@ -4,6 +4,7 @@ open SixLabors.ImageSharp
 open System.IO
 open System
 open System.Numerics
+open Raytracer.Numerics
 open Camera
 open Geometry
 
@@ -14,7 +15,8 @@ let raySampes = [0.1f..0.1f..100.0f]
 let frameBuffer = Array2D.create width height Rgba32.DarkGray
 let squareRange = [200..300]
 
-let shapes = [sphereIntersections (Vector3(0.0f,0.0f,-10.0f),5.0f)]
+let shapes = [sphereIntersections (Vector3(0.0f,0.0f,-10.0f),2.0f)]
+let cameraOriginWS = Vector3(0.0f,0.0f,0.0f)
 
 let render = 
     using (File.OpenWrite("test.jpg")) (fun output ->
@@ -25,6 +27,28 @@ let render =
                         image.Item(px,py) <- Rgba32.White        
                     else
                         image.Item(px,py) <- frameBuffer.[px,py]
+                    
+            image.SaveAsJpeg(output)
+        )
+    )  
+
+let render_sphere = 
+    using (File.OpenWrite("sphere.jpg")) (fun output ->
+        using(new Image<Rgba32>(width,height))(fun image -> 
+            for px in 0..width-1 do
+                for py in 0..height-1 do
+                    let dir = 
+                        rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) (MathF.PI/4.0f))
+                    let dirNormalized = Vector3.Normalize(dir)
+                    let ray = Ray(cameraOriginWS, dirNormalized)
+                    for sphere in shapes do 
+                        let (realSolution,i1,i2) = sphere ray
+                        let closestInterection = smallestNonNegative (i1,i2)
+                        if realSolution then
+                            image.Item(px,py) <- Rgba32.White        
+                        else
+                            image.Item(px,py) <- frameBuffer.[px,py]
+
                     
             image.SaveAsJpeg(output)
         )
@@ -45,7 +69,7 @@ let testCameraInv =
 
 [<EntryPoint>]
 let main argv =
-    render
+    render_sphere
     0 // return an integer exit code
 
 

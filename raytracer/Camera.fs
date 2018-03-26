@@ -21,7 +21,7 @@ let pixelToCamera x y width height fov =
     screenToCamera (NDCToScreen (pixelToNDC x y width height)) (aspectRatio width height) fov
 
     // ray direction wrt to camera
-let rayDirection cameraPixel_x cameraPixel_y =
+let rayDirection (cameraPixel_x , cameraPixel_y) =
     Vector3.Normalize(Vector3(cameraPixel_x,cameraPixel_y,-1.0f))
 
 let worldToCamera  position target up = Matrix4x4.CreateLookAt(position,target,up);
