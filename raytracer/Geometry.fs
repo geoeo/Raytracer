@@ -36,3 +36,6 @@ let sphereIntersections ((sphereCenter,radius) : Sphere) (ray : Ray) =
     else if round discriminant 1 = 0.0f then (true,-dirDotCenterToRay,-1.0f)
     else (true,-dirDotCenterToRay + MathF.Sqrt(discriminant),-dirDotCenterToRay - MathF.Sqrt(discriminant))
 
+let sphereNormal (positionOnSphere:Vector3) (center:Vector3) =
+    Vector3.Normalize(positionOnSphere - center)
+

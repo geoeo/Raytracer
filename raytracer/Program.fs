@@ -15,10 +15,13 @@ let raySampes = [0.1f..0.1f..100.0f]
 let frameBuffer = Array2D.create width height Rgba32.DarkGray
 let squareRange = [200..300]
 
-let shapes = [sphereIntersections (Vector3(0.0f,0.0f,-10.0f),2.0f)]
-let cameraOriginWS = Vector3(0.0f,0.0f,-2.0f)
-let target = Vector3(0.0f,-0.5f,-1.0f)
+let shapes = [(Vector3(0.0f,0.0f,-10.0f),2.0f)]
+// let cameraOriginWS = Vector3(0.0f,0.0f,0.0f)
+// let target = -Vector3.UnitZ
+let cameraOriginWS = Vector3(0.0f,5.0f,0.0f)
+let target = Vector3(0.0f,0.0f,-10.0f)
 
+let lightWS = Vector3(0.0f, 20.0f, 0.0f)
 let viewMatrix = worldToCamera cameraOriginWS target Vector3.UnitY
 
 let cameraWS = cameraToWorld viewMatrix 
@@ -45,14 +48,19 @@ let render_sphere =
                     let dir = 
                         rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) (MathF.PI/4.0f))
                     let rot = rotation cameraWS
-                    let dirWS = toVec3 (Vector4.Transform(dir,rot))
+                    let dirWS = Vector3.TransformNormal(dir,rot)
                     let dirNormalized = Vector3.Normalize(dirWS)
                     let ray = Ray(cameraWS.Translation, dirNormalized)
-                    for sphere in shapes do 
-                        let (realSolution,i1,i2) = sphere ray
+                    for (origin,radius) in shapes do 
+                        let (realSolution,i1,i2) = sphereIntersections (origin,radius)  ray
                         let closestInterection = smallestNonNegative (i1,i2)
+                        let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
+                        let normal = sphereNormal positionOnSphere origin
+                        let pointToLight = Vector3.Normalize(lightWS - origin)
+                        let diffuse = Vector3.Dot(normal,pointToLight)
                         if realSolution then
-                            image.Item(px,py) <- Rgba32.White        
+                            let color = Vector4(1.0f,1.0f,1.0f,1.0f)*diffuse
+                            image.Item(px,py) <- Rgba32(color)   
                         else
                             image.Item(px,py) <- frameBuffer.[px,py]
 
