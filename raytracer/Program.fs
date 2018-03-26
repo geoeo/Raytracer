@@ -16,7 +16,12 @@ let frameBuffer = Array2D.create width height Rgba32.DarkGray
 let squareRange = [200..300]
 
 let shapes = [sphereIntersections (Vector3(0.0f,0.0f,-10.0f),2.0f)]
-let cameraOriginWS = Vector3(0.0f,0.0f,0.0f)
+let cameraOriginWS = Vector3(0.0f,0.0f,-2.0f)
+let target = Vector3(0.0f,-0.5f,-1.0f)
+
+let viewMatrix = worldToCamera cameraOriginWS target Vector3.UnitY
+
+let cameraWS = cameraToWorld viewMatrix 
 
 let render = 
     using (File.OpenWrite("test.jpg")) (fun output ->
@@ -39,8 +44,10 @@ let render_sphere =
                 for py in 0..height-1 do
                     let dir = 
                         rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) (MathF.PI/4.0f))
-                    let dirNormalized = Vector3.Normalize(dir)
-                    let ray = Ray(cameraOriginWS, dirNormalized)
+                    let rot = rotation cameraWS
+                    let dirWS = toVec3 (Vector4.Transform(dir,rot))
+                    let dirNormalized = Vector3.Normalize(dirWS)
+                    let ray = Ray(cameraWS.Translation, dirNormalized)
                     for sphere in shapes do 
                         let (realSolution,i1,i2) = sphere ray
                         let closestInterection = smallestNonNegative (i1,i2)

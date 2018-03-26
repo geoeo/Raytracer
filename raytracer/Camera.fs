@@ -46,3 +46,19 @@ let cameraToWorldFast (worldToCamera : Matrix4x4) (roundToDigits: int) =
               worldToCamera.M12,worldToCamera.M22,worldToCamera.M32,0.0f,
               worldToCamera.M13,worldToCamera.M23,worldToCamera.M33,0.0f,
               round trans_inv.X,round trans_inv.Y,round trans_inv.Z,1.0f)
+
+
+
+let rotation (matrix : Matrix4x4)
+    = Matrix4x4(matrix.M11,matrix.M12,matrix.M13,0.0f,
+                matrix.M21,matrix.M22,matrix.M23,0.0f,
+                matrix.M31,matrix.M32,matrix.M33,0.0f,
+                0.0f,0.0f,0.0f,0.0f)
+
+let transposeRot (matrix : Matrix4x4) =
+        Matrix4x4(matrix.M11,matrix.M21,matrix.M31,0.0f,
+              matrix.M12,matrix.M22,matrix.M32,0.0f,
+              matrix.M13,matrix.M23,matrix.M33,0.0f,
+              0.0f,0.0f,0.0f,0.0f)
+
+

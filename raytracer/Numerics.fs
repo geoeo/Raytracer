@@ -21,6 +21,9 @@ let smallestNonNegative (a:float32,b:float32) =
     else if a <= b then a
     else b
 
+let toVec3 (vec4:Vector4) =
+    Vector3(vec4.X,vec4.Y,vec4.Z)
+
 
 
     
