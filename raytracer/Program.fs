@@ -63,7 +63,7 @@ let render_sphere =
                 let closestInterection = smallestNonNegative (i1,i2)
                 let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
                 let normal = sphereNormal positionOnSphere origin
-                let pointToLight = Vector3.Normalize(lightWS - origin)
+                let pointToLight = Vector3.Normalize(lightWS - positionOnSphere)
                 let diffuse = Vector3.Dot(normal,pointToLight)
                 if realSolution && closestInterection < depthBuffer.[px,py] then
                     let color = Vector4(1.0f,1.0f,1.0f,1.0f)*diffuse
