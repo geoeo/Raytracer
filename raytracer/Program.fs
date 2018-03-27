@@ -7,12 +7,19 @@ open System.Numerics
 open Raytracer.Numerics
 open Camera
 open Geometry
+open System.Security.Cryptography.X509Certificates
 
 let width = 640
 let height = 480
 
 let raySampes = [0.1f..0.1f..100.0f]
-let frameBuffer = Array2D.create width height Rgba32.DarkGray
+
+let defaultColor = Rgba32.DarkGray
+
+// let frameBuffer = Array2D.create width height defaultColor
+let frameBuffer = Array2D.create width height Vector4.One
+let depthBuffer = Array2D.create width height System.Single.MaxValue
+let mutable maxDepth = 0.0f
 let squareRange = [200..300]
 
 let shapes = [(Vector3(0.0f,0.0f,-10.0f),2.0f)]
@@ -34,40 +41,59 @@ let render =
                     if List.exists ( px.Equals ) squareRange &&  List.exists (py.Equals) squareRange then
                         image.Item(px,py) <- Rgba32.White        
                     else
-                        image.Item(px,py) <- frameBuffer.[px,py]
+                        image.Item(px,py) <- defaultColor
                     
             image.SaveAsJpeg(output)
         )
     )  
 
 let render_sphere = 
+    for px in 0..width-1 do
+        for py in 0..height-1 do
+            let dir = 
+                rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) (MathF.PI/4.0f))
+            let rot = rotation cameraWS
+            let dirWS = Vector3.TransformNormal(dir,rot)
+            let dirNormalized = Vector3.Normalize(dirWS)
+            let ray = Ray(cameraWS.Translation, dirNormalized)
+            for (origin,radius) in shapes do 
+                let (realSolution,i1,i2) = sphereIntersections (origin,radius)  ray
+                let closestInterection = smallestNonNegative (i1,i2)
+                let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
+                let normal = sphereNormal positionOnSphere origin
+                let pointToLight = Vector3.Normalize(lightWS - origin)
+                let diffuse = Vector3.Dot(normal,pointToLight)
+                if realSolution && closestInterection < depthBuffer.[px,py] then
+                    let color = Vector4(1.0f,1.0f,1.0f,1.0f)*diffuse
+                    frameBuffer.[px,py] <- color
+                    depthBuffer.[px,py] <- closestInterection
+                    if closestInterection > maxDepth then 
+                        maxDepth <- closestInterection
+                   
+
+let saveFrameBuffer =
     using (File.OpenWrite("sphere.jpg")) (fun output ->
         using(new Image<Rgba32>(width,height))(fun image -> 
             for px in 0..width-1 do
                 for py in 0..height-1 do
-                    let dir = 
-                        rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) (MathF.PI/4.0f))
-                    let rot = rotation cameraWS
-                    let dirWS = Vector3.TransformNormal(dir,rot)
-                    let dirNormalized = Vector3.Normalize(dirWS)
-                    let ray = Ray(cameraWS.Translation, dirNormalized)
-                    for (origin,radius) in shapes do 
-                        let (realSolution,i1,i2) = sphereIntersections (origin,radius)  ray
-                        let closestInterection = smallestNonNegative (i1,i2)
-                        let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
-                        let normal = sphereNormal positionOnSphere origin
-                        let pointToLight = Vector3.Normalize(lightWS - origin)
-                        let diffuse = Vector3.Dot(normal,pointToLight)
-                        if realSolution then
-                            let color = Vector4(1.0f,1.0f,1.0f,1.0f)*diffuse
-                            image.Item(px,py) <- Rgba32(color)   
-                        else
-                            image.Item(px,py) <- frameBuffer.[px,py]
-
-                    
+                    image.Item(px,py) <- Rgba32(frameBuffer.[px,py])
+                
             image.SaveAsJpeg(output)
         )
-    )  
+    )
+
+let saveDepthBuffer =
+    using (File.OpenWrite("depth.jpg")) (fun output ->
+        using(new Image<Rgba32>(width,height))(fun image -> 
+            for px in 0..width-1 do
+                for py in 0..height-1 do
+                    let color = Vector4(Vector3(depthBuffer.[px,py]/maxDepth),1.0f)
+                    image.Item(px,py) <- Rgba32(color)
+                
+            image.SaveAsJpeg(output)
+        )
+    )
+
 
 
 let testCameraInv =
@@ -85,6 +111,8 @@ let testCameraInv =
 [<EntryPoint>]
 let main argv =
     render_sphere
+    saveFrameBuffer
+    saveDepthBuffer
     0 // return an integer exit code
 
 
