@@ -22,16 +22,18 @@ let depthBuffer = Array2D.create width height System.Single.MaxValue
 let mutable maxDepth = 0.0f
 let squareRange = [200..300]
 
-let shapes = [(Vector3(0.0f,0.0f,-10.0f),2.0f)]
+let shapes = [(Vector3(0.0f,0.0f,-10.0f),2.0f);(Vector3(-5.0f,0.0f,-20.0f),5.0f)]
 // let cameraOriginWS = Vector3(0.0f,0.0f,0.0f)
 // let target = -Vector3.UnitZ
 let cameraOriginWS = Vector3(0.0f,5.0f,0.0f)
 let target = Vector3(0.0f,0.0f,-10.0f)
 
-let lightWS = Vector3(0.0f, 20.0f, 0.0f)
+let lightWS = Vector3(0.0f, 5.0f, -10.0f)
 let viewMatrix = worldToCamera cameraOriginWS target Vector3.UnitY
 
 let cameraWS = cameraToWorld viewMatrix 
+
+let fov = MathF.PI/4.0f
 
 let render = 
     using (File.OpenWrite("test.jpg")) (fun output ->
@@ -50,10 +52,10 @@ let render =
 let render_sphere = 
     for px in 0..width-1 do
         for py in 0..height-1 do
-            let dir = 
-                rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) (MathF.PI/4.0f))
+            let dirCS = 
+                rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) fov)
             let rot = rotation cameraWS
-            let dirWS = Vector3.TransformNormal(dir,rot)
+            let dirWS = Vector3.TransformNormal(dirCS,rot)
             let dirNormalized = Vector3.Normalize(dirWS)
             let ray = Ray(cameraWS.Translation, dirNormalized)
             for (origin,radius) in shapes do 
