@@ -24,6 +24,11 @@ let smallestNonNegative (a:float32,b:float32) =
 let toVec3 (vec4:Vector4) =
     Vector3(vec4.X,vec4.Y,vec4.Z)
 
+let lightTransportWithObstacle b =
+    match b with
+        | true -> 0.0f
+        | false -> 1.0f
+
 
 
     

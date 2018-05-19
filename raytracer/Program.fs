@@ -7,8 +7,6 @@ open System.Numerics
 open Raytracer.Numerics
 open Camera
 open Geometry
-open System.Security.Cryptography.X509Certificates
-open System.Numerics
 
 let width = 640
 let height = 480
@@ -32,7 +30,7 @@ let planes = [Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6
 let cameraOriginWS = Vector3(0.0f,5.0f,0.0f)
 let target = Vector3(0.0f,0.0f,-10.0f)
 
-let lightWS = Vector3(0.0f, 5.0f, -10.0f)
+let lightWS = Vector3(0.0f, 10.0f, -5.0f)
 let viewMatrix = worldToCamera cameraOriginWS target Vector3.UnitY
 
 let cameraWS = cameraToWorld viewMatrix 
@@ -64,29 +62,33 @@ let render_scene =
             let ray = Ray(cameraWS.Translation, dirNormalized)
             for (origin,radius) in spheres do 
                 let (realSolution,i1,i2) = sphereIntersections (origin,radius)  ray
-                let closestInterection = smallestNonNegative (i1,i2)
-                let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
-                let normal = sphereNormal positionOnSphere origin
-                let pointToLight = Vector3.Normalize(lightWS - positionOnSphere)
-                let diffuse = Vector3.Dot(normal,pointToLight)
-                if realSolution && closestInterection < depthBuffer.[px,py] then
-                    let color = Vector4(1.0f,1.0f,1.0f,1.0f)*diffuse
-                    frameBuffer.[px,py] <- color
-                    depthBuffer.[px,py] <- closestInterection
-                    if closestInterection > maxDepth then 
-                        maxDepth <- closestInterection
+                if realSolution then
+                    let closestInterection = smallestNonNegative (i1,i2)
+                    let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
+                    let normal = sphereNormal positionOnSphere origin
+                    let pointToLight = Vector3.Normalize(lightWS - positionOnSphere)
+                    let diffuse = Vector3.Dot(normal,pointToLight)
+                    if closestInterection < depthBuffer.[px,py] then
+                        let color = Vector4(1.0f,1.0f,1.0f,1.0f)*diffuse
+                        frameBuffer.[px,py] <- color
+                        depthBuffer.[px,py] <- closestInterection
+                        if closestInterection > maxDepth then 
+                            maxDepth <- closestInterection
             for plane in planes do 
                 let (realSolution,lambda) = planeIntersection plane ray
-                let positionOnPlane = cameraOriginWS + lambda*dirNormalized
-                let normal = plane.Normal
-                let pointToLight = Vector3.Normalize(lightWS - positionOnPlane)
-                let diffuse = Vector3.Dot(normal,pointToLight)
-                if realSolution && lambda < depthBuffer.[px,py] then
-                    let color = Vector4(0.0f,0.0f,1.0f,1.0f)*diffuse
-                    frameBuffer.[px,py] <- color
-                    depthBuffer.[px,py] <- lambda
-                    if lambda > maxDepth then 
-                        maxDepth <- lambda
+                if realSolution && lambda <= 50.0f && lambda >= 0.0f then // TODO refactor for tmax specific for shapes
+                    let positionOnPlane = cameraOriginWS + lambda*dirNormalized
+                    let normal = plane.Normal
+                    let pointToLight = Vector3.Normalize(lightWS - positionOnPlane)
+                    // TODO refactor this into generic recusive algorithm!
+                    let rayHitToLight = Ray(positionOnPlane,pointToLight)
+                    let diffuse = Vector3.Dot(normal,pointToLight)*lightTransportWithObstacle(isRayObstructed spheres rayHitToLight)
+                    if lambda < depthBuffer.[px,py] then
+                        let color = Vector4(0.0f,0.0f,1.0f,1.0f)*diffuse
+                        frameBuffer.[px,py] <- color
+                        depthBuffer.[px,py] <- lambda
+                        if lambda > maxDepth then 
+                            maxDepth <- lambda
                    
 
 let saveFrameBuffer =
