@@ -28,6 +28,7 @@ let lightTransportWithObstacle b =
     match b with
         | true -> 0.0f
         | false -> 1.0f
+        
 
 
 
