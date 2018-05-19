@@ -8,6 +8,7 @@ open Raytracer.Numerics
 open Camera
 open Geometry
 open System.Security.Cryptography.X509Certificates
+open System.Numerics
 
 let width = 640
 let height = 480
@@ -22,9 +23,12 @@ let depthBuffer = Array2D.create width height System.Single.MaxValue
 let mutable maxDepth = 0.0f
 let squareRange = [200..300]
 
-let shapes = [(Vector3(0.0f,0.0f,-10.0f),2.0f);(Vector3(-5.0f,0.0f,-20.0f),5.0f)]
+let spheres = [(Vector3(0.0f,0.0f,-10.0f),2.0f);(Vector3(-5.0f,0.0f,-20.0f),5.0f)]
 // let cameraOriginWS = Vector3(0.0f,0.0f,0.0f)
 // let target = -Vector3.UnitZ
+
+let planes = [Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))]
+
 let cameraOriginWS = Vector3(0.0f,5.0f,0.0f)
 let target = Vector3(0.0f,0.0f,-10.0f)
 
@@ -49,7 +53,7 @@ let render =
         )
     )  
 
-let render_sphere = 
+let render_scene = 
     for px in 0..width-1 do
         for py in 0..height-1 do
             let dirCS = 
@@ -58,7 +62,7 @@ let render_sphere =
             let dirWS = Vector3.TransformNormal(dirCS,rot)
             let dirNormalized = Vector3.Normalize(dirWS)
             let ray = Ray(cameraWS.Translation, dirNormalized)
-            for (origin,radius) in shapes do 
+            for (origin,radius) in spheres do 
                 let (realSolution,i1,i2) = sphereIntersections (origin,radius)  ray
                 let closestInterection = smallestNonNegative (i1,i2)
                 let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
@@ -71,6 +75,18 @@ let render_sphere =
                     depthBuffer.[px,py] <- closestInterection
                     if closestInterection > maxDepth then 
                         maxDepth <- closestInterection
+            for plane in planes do 
+                let (realSolution,lambda) = planeIntersection plane ray
+                let positionOnPlane = cameraOriginWS + lambda*dirNormalized
+                let normal = plane.Normal
+                let pointToLight = Vector3.Normalize(lightWS - positionOnPlane)
+                let diffuse = Vector3.Dot(normal,pointToLight)
+                if realSolution && lambda < depthBuffer.[px,py] then
+                    let color = Vector4(0.0f,0.0f,1.0f,1.0f)*diffuse
+                    frameBuffer.[px,py] <- color
+                    depthBuffer.[px,py] <- lambda
+                    if lambda > maxDepth then 
+                        maxDepth <- lambda
                    
 
 let saveFrameBuffer =
@@ -112,7 +128,7 @@ let testCameraInv =
 
 [<EntryPoint>]
 let main argv =
-    render_sphere
+    render_scene
     saveFrameBuffer
     saveDepthBuffer
     0 // return an integer exit code
