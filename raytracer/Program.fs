@@ -2,7 +2,7 @@
 
 [<EntryPoint>]
 let main argv =
-    renderSurfaces.Force()
+    renderScene.Force()
     saveFrameBuffer.Force()
     saveDepthBuffer.Force()
     0 // return an integer exit code

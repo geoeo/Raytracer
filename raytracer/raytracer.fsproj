@@ -6,7 +6,9 @@
   <ItemGroup>
     <Compile Include="Numerics.fs" />
     <Compile Include="Camera.fs" />
+    <Compile Include="Material.fs" />
     <Compile Include="Geometry.fs" />
+    <Compile Include="Surface.fs" />
     <Compile Include="Scene.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

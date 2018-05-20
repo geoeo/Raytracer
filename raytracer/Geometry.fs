@@ -3,7 +3,6 @@ module Raytracer.Geometry
 open System
 open System.Numerics
 open Raytracer.Numerics
-open SixLabors.ImageSharp
 
 type Origin = Vector3 // Position of a point in 3D space
 type Direction = Vector3  
@@ -12,7 +11,6 @@ type Offset = float32
 type Radius = float32
 type LineParameter = float32
 type Point = Vector3
-type ID = uint64
 
 type Ray =
     struct
@@ -23,36 +21,37 @@ type Ray =
 
     end
 
+[<AbstractClass>]
 type Hitable() =
     abstract member HasIntersection: Ray -> bool
     abstract member Intersect: Ray -> bool*LineParameter
     abstract member IntersectionAcceptable : bool -> LineParameter -> float32  -> bool
     abstract member NormalForSurfacePoint : Point -> Normal
-    abstract member IsRayObstructed: Hitable list -> Ray -> bool
-    abstract member Color: Vector4
-    abstract member ID: ID
-
+    //abstract member IsSurfaceIntersectionInfrontOf: Ray -> LineParameter -> bool
 
     static member ToHitable x = x:> Hitable 
-    member this.TMin = 0.01f
+    member this.TMin = 0.0f
     member this.TMax = 50.0f
 
+    member this.IsSurfaceIntersectionInfrontOf (ray : Ray) (tCompare : LineParameter) = 
+        let (hasIntersections,t) = this.Intersect ray
+        if hasIntersections && t > 0.0f then t < tCompare else false
 
 
-    default this.HasIntersection _ = false
-    default this.Intersect _ = (false,0.0f)
-    default this.IntersectionAcceptable _ _ _ = false
-    default this.NormalForSurfacePoint _ = Vector3.Zero
-    default this.IsRayObstructed _ _ = false
-    default this.Color = Rgba32.White.ToVector4()
-    default this.ID = (uint64)0
+    // member this.IsRayObstructed (surfaces : Hitable list) ray = 
+    //     let intersections = 
+    //         seq { for surface in surfaces do yield this.HasIntersection ray}
+    //     Seq.fold (fun b1 b2 -> b1 || b2) false intersections
 
-type Sphere(sphereCenter : Origin,radius : Radius, id: ID) =
+    //default this.HasIntersection _ = false
+    //default this.Intersect _ = (false,0.0f)
+    //default this.IntersectionAcceptable _ _ _ = false
+    //default this.NormalForSurfacePoint _ = Vector3.Zero
+
+type Sphere(sphereCenter : Origin,radius : Radius) =
     inherit Hitable()
-    override this.ID = id
     member this.Center = sphereCenter
     member this.Radius = radius
-    override this.Color = Rgba32.RoyalBlue.ToVector4()
     member this.GetIntersections (_,i1,i2) = (i1,i2)
     member this.Intersections (ray : Ray) = 
         let centerToRay = ray.Origin - this.Center
@@ -64,7 +63,7 @@ type Sphere(sphereCenter : Origin,radius : Radius, id: ID) =
         else (true,-dirDotCenterToRay + MathF.Sqrt(discriminant),-dirDotCenterToRay - MathF.Sqrt(discriminant))
     override this.Intersect (ray : Ray) = 
         let (hasIntersection,i1,i2) = this.Intersections (ray : Ray)
-        (hasIntersection,smallestNonNegative (i1,i2))
+        (hasIntersection,MathF.Min(i1,i2))
     member this.IntersectWith (t : LineParameter) (ray : Ray) =
         ((ray.Origin + t*ray.Direction) - this.Center).Length() <= this.Radius
     override this.NormalForSurfacePoint (positionOnSphere:Point) =
@@ -74,15 +73,12 @@ type Sphere(sphereCenter : Origin,radius : Radius, id: ID) =
         hasIntersection
     override this.IntersectionAcceptable hasIntersection t _ =
         hasIntersection && t > this.TMin
-    //TODO Implement Is Ray obstructed for spheres
 
 
-type Plane(plane : System.Numerics.Plane, id : ID) = 
+type Plane(plane : System.Numerics.Plane) = 
     inherit Hitable()
-    override this.ID = id
     member this.Plane = plane
     member this.Normal = this.Plane.Normal
-    override this.Color = Rgba32.Snow.ToVector4()
     override this.Intersect (ray:Ray) =
         let numerator = -this.Plane.D - Plane.DotNormal(this.Plane,ray.Origin) 
         let denominator = Plane.DotNormal(this.Plane,ray.Direction)
@@ -95,13 +91,14 @@ type Plane(plane : System.Numerics.Plane, id : ID) =
         hasIntersection && t > this.TMin && t <= (this.TMax/dotViewAndTracingRay)
     override this.NormalForSurfacePoint _ =
         this.Normal
-    override this.IsRayObstructed surfaces ray = 
-        let intersections = 
-            seq { for surface in surfaces do yield surface.HasIntersection ray}
-        Seq.fold (fun b1 b2 -> b1 || b2) false intersections
 
+let ParameterToPointForRay (ray : Ray) (point : Point) =
+    MathF.Max((point.X - ray.Origin.X)/ray.Direction.X,(point.Y - ray.Origin.Y)/ray.Direction.Y)
 
-let isRayObstructed (spheres : Sphere list ) (ray : Ray) =
+let IsRayObstructed (surfaces : Hitable list) (ray : Ray) (lightWS: Point) = 
+    let t_HitLight = ParameterToPointForRay ray lightWS
+
     let intersections = 
-        seq { for sphere in spheres do yield sphere.HasIntersection ray}
+        seq { for surface in surfaces do yield (surface.IsSurfaceIntersectionInfrontOf ray t_HitLight)}
     Seq.fold (fun b1 b2 -> b1 || b2) false intersections
+
