@@ -23,7 +23,7 @@ let depthBuffer = Array2D.create width height System.Single.MaxValue
 let mutable maxDepth = 0.0f
 let squareRange = [200..300]
 
-let spheres = [(Vector3(0.0f,0.0f,-10.0f),2.0f);(Vector3(-5.0f,0.0f,-20.0f),5.0f)]
+let spheres = [Sphere(Vector3(0.0f,0.0f,-10.0f),2.0f);Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f)]
 //let spheres = []
 
 let planes = [Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))]
@@ -62,12 +62,12 @@ let renderScene = lazy
             let dirNormalized = Vector3.Normalize(dirWS)
             let ray = Ray(cameraWS.Translation, dirNormalized)
             let dotViewTargetRay = Vector3.Dot(Vector3.Normalize(target),dirNormalized)
-            for (origin,radius) in spheres do 
-                let (realSolution,i1,i2) = sphereIntersections (origin,radius)  ray
+            for sphere in spheres do 
+                let (realSolution,i1,i2) = sphereIntersections sphere ray
                 if realSolution then
                     let closestInterection = smallestNonNegative (i1,i2)
                     let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
-                    let normal = sphereNormal positionOnSphere origin
+                    let normal = sphereNormal positionOnSphere sphere.Center
                     let pointToLight = Vector3.Normalize(lightWS - positionOnSphere)
                     let diffuse = Vector3.Dot(normal,pointToLight)
                     if closestInterection < depthBuffer.[px,py] then
