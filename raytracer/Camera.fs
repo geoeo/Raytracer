@@ -1,4 +1,4 @@
-module Camera
+module Raytracer.Camera
 
 open System
 open System.Numerics

@@ -1,4 +1,4 @@
-module Geometry
+module Raytracer.Geometry
 
 open System
 open System.Numerics
@@ -53,5 +53,5 @@ let planeIntersection (plane : Plane) (ray : Ray) =
 let isRayObstructed (spheres : (Vector3*float32) list ) (ray : Ray) =
     let intersections = 
         seq { for (origin,radius) in spheres do yield hasSphereIntersection(sphereIntersections (origin,radius) ray)}
-    Seq.reduce (fun b1 b2 -> b1 || b2) intersections
+    Seq.fold (fun b1 b2 -> b1 || b2) false intersections
 
