@@ -63,7 +63,7 @@ let renderScene = lazy
             let ray = Ray(cameraWS.Translation, dirNormalized)
             let dotViewTargetRay = Vector3.Dot(Vector3.Normalize(target),dirNormalized)
             for sphere in spheres do 
-                let (realSolution,i1,i2) = sphere.Intersections ray
+                let (realSolution,i1,i2) = sphere.Intersect ray
                 if realSolution then
                     let closestInterection = smallestNonNegative (i1,i2)
                     let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
@@ -77,7 +77,7 @@ let renderScene = lazy
                         if closestInterection > maxDepth then 
                             maxDepth <- closestInterection
             for plane in planes do 
-                let (realSolution,lambda) = plane.Intersection ray
+                let (realSolution,lambda) = plane.Intersect ray
                 if realSolution && lambda <= (50.0f/dotViewTargetRay) && lambda >= 0.0f then // TODO refactor for tmax specific for shapes
                     let positionOnPlane = cameraOriginWS + lambda*dirNormalized
                     let normal = plane.Normal
