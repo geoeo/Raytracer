@@ -93,7 +93,9 @@ type Plane(plane : System.Numerics.Plane) =
         this.Normal
 
 let ParameterToPointForRay (ray : Ray) (point : Point) =
-    MathF.Max((point.X - ray.Origin.X)/ray.Direction.X,(point.Y - ray.Origin.Y)/ray.Direction.Y)
+    if ray.Direction.X = 0.0f then (point.Y - ray.Origin.Y)/ray.Direction.Y
+    else (point.X - ray.Origin.X)/ray.Direction.X
+
 
 let IsRayObstructed (surfaces : Hitable list) (ray : Ray) (lightWS: Point) = 
     let t_HitLight = ParameterToPointForRay ray lightWS

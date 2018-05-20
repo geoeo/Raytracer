@@ -38,10 +38,10 @@ let planes = [Surface(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vec
 //let planes = []
 let surfaces : (Surface list) = List.concat [spheres; planes]
 
-let cameraOriginWS = Vector3(0.0f,2.0f,0.0f)
-let lookAt = Vector3(0.0f,0.0f,-10.0f)
+let cameraOriginWS = Vector3(-1.0f,6.0f,2.0f)
+let lookAt = Vector3(0.0f,1.0f,-10.0f)
 
-let lightWS = Vector3(0.0f, 10.0f, -5.0f)
+let lightWS = Vector3(3.0f, 5.0f, -5.0f)
 let viewMatrix = worldToCamera cameraOriginWS lookAt Vector3.UnitY
 
 let cameraWS = cameraToWorld viewMatrix 
