@@ -28,6 +28,8 @@ let spheres = [Sphere(Vector3(0.0f,0.0f,-10.0f),2.0f);Sphere(Vector3(-5.0f,0.0f,
 
 let planes = [Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)))]
 
+let surfaces : (Hitable list) = List.concat [List.map (fun x -> x:> Hitable) spheres; List.map (fun x -> x:> Hitable) planes]
+
 let cameraOriginWS = Vector3(0.0f,2.0f,0.0f)
 let target = Vector3(0.0f,0.0f,-10.0f)
 
@@ -61,37 +63,51 @@ let renderScene = lazy
             let dirWS = Vector3.TransformNormal(dirCS,rot)
             let dirNormalized = Vector3.Normalize(dirWS)
             let ray = Ray(cameraWS.Translation, dirNormalized)
-            let dotViewTargetRay = Vector3.Dot(Vector3.Normalize(target),dirNormalized)
+            let dotViewAndTracingRay = Vector3.Dot(Vector3.Normalize(target),dirNormalized)
             for sphere in spheres do 
-                let (realSolution,i1,i2) = sphere.Intersect ray
-                if realSolution then
-                    let closestInterection = smallestNonNegative (i1,i2)
-                    let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
-                    let normal = sphere.NormalToPointOnSphere positionOnSphere
+                let (realSolution,t) = sphere.Intersect ray
+                if sphere.IntersectionAcceptable realSolution t dotViewAndTracingRay then
+                    let positionOnSphere = cameraOriginWS + t*dirNormalized
+                    let normal = sphere.NormalForSurfacePoint positionOnSphere
                     let pointToLight = Vector3.Normalize(lightWS - positionOnSphere)
                     let diffuse = Vector3.Dot(normal,pointToLight)
-                    if closestInterection < depthBuffer.[px,py] then
+                    if t < depthBuffer.[px,py] then
                         let color = Vector4(1.0f,1.0f,1.0f,1.0f)*diffuse
                         frameBuffer.[px,py] <- color
-                        depthBuffer.[px,py] <- closestInterection
-                        if closestInterection > maxDepth then 
-                            maxDepth <- closestInterection
+                        depthBuffer.[px,py] <- t
+                        if t > maxDepth then 
+                            maxDepth <- t
             for plane in planes do 
-                let (realSolution,lambda) = plane.Intersect ray
-                if realSolution && lambda <= (50.0f/dotViewTargetRay) && lambda >= 0.0f then // TODO refactor for tmax specific for shapes
-                    let positionOnPlane = cameraOriginWS + lambda*dirNormalized
-                    let normal = plane.Normal
+                let (realSolution,t) = plane.Intersect ray
+                if plane.IntersectionAcceptable realSolution t dotViewAndTracingRay then
+                    let positionOnPlane = cameraOriginWS + t*dirNormalized
+                    let normal = plane.NormalForSurfacePoint positionOnPlane
                     let pointToLight = Vector3.Normalize(lightWS - positionOnPlane)
                     // TODO refactor this into generic recusive algorithm!
                     let rayHitToLight = Ray(positionOnPlane,pointToLight)
                     let diffuse = Vector3.Dot(normal,pointToLight)*lightTransportWithObstacle(isRayObstructed spheres rayHitToLight)
-                    if lambda < depthBuffer.[px,py] then
+                    if t < depthBuffer.[px,py] then
                         let color = Vector4(0.0f,0.0f,1.0f,1.0f)*diffuse
                         frameBuffer.[px,py] <- color
-                        depthBuffer.[px,py] <- lambda
-                        if lambda > maxDepth then 
-                            maxDepth <- lambda
-                   
+                        depthBuffer.[px,py] <- t
+                        if t > maxDepth then 
+                            maxDepth <- t
+            // for surface in surfaces do 
+            //     let (realSolution,t) = surface.Intersect ray
+            //     if surface.IntersectionAcceptable realSolution t dotViewAndTracingRay then
+            //         let positionOnSurface = cameraOriginWS + t*dirNormalized
+            //         let normal = surface.NormalForSurfacePoint positionOnSurface
+            //         let pointToLight = Vector3.Normalize(lightWS - positionOnSurface)
+            //         // TODO refactor this into generic recusive algorithm!
+            //         let rayHitToLight = Ray(positionOnSurface,pointToLight)
+            //         let diffuse = Vector3.Dot(normal,pointToLight)*lightTransportWithObstacle(isRayObstructed spheres rayHitToLight)
+            //         if t < depthBuffer.[px,py] then
+            //             let color = Vector4(0.0f,0.0f,1.0f,1.0f)*diffuse
+            //             frameBuffer.[px,py] <- color
+            //             depthBuffer.[px,py] <- t
+            //             if t > maxDepth then 
+            //                 maxDepth <- t           
+
 
 let saveFrameBuffer = lazy
     using (File.OpenWrite("sphere.jpg")) (fun output ->
