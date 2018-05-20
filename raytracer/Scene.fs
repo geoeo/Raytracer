@@ -26,7 +26,7 @@ let squareRange = [200..300]
 let spheres = [Sphere(Vector3(0.0f,0.0f,-10.0f),2.0f);Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f)]
 //let spheres = []
 
-let planes = [Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))]
+let planes = [Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)))]
 
 let cameraOriginWS = Vector3(0.0f,2.0f,0.0f)
 let target = Vector3(0.0f,0.0f,-10.0f)
@@ -63,11 +63,11 @@ let renderScene = lazy
             let ray = Ray(cameraWS.Translation, dirNormalized)
             let dotViewTargetRay = Vector3.Dot(Vector3.Normalize(target),dirNormalized)
             for sphere in spheres do 
-                let (realSolution,i1,i2) = sphereIntersections sphere ray
+                let (realSolution,i1,i2) = sphere.Intersections ray
                 if realSolution then
                     let closestInterection = smallestNonNegative (i1,i2)
                     let positionOnSphere = cameraOriginWS + closestInterection*dirNormalized
-                    let normal = sphereNormal positionOnSphere sphere.Center
+                    let normal = sphere.NormalToPointOnSphere positionOnSphere
                     let pointToLight = Vector3.Normalize(lightWS - positionOnSphere)
                     let diffuse = Vector3.Dot(normal,pointToLight)
                     if closestInterection < depthBuffer.[px,py] then
@@ -77,7 +77,7 @@ let renderScene = lazy
                         if closestInterection > maxDepth then 
                             maxDepth <- closestInterection
             for plane in planes do 
-                let (realSolution,lambda) = planeIntersection plane ray
+                let (realSolution,lambda) = plane.Intersection ray
                 if realSolution && lambda <= (50.0f/dotViewTargetRay) && lambda >= 0.0f then // TODO refactor for tmax specific for shapes
                     let positionOnPlane = cameraOriginWS + lambda*dirNormalized
                     let normal = plane.Normal

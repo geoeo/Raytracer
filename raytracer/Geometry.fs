@@ -13,6 +13,13 @@ type Parameter = float32
 //type Sphere = Origin * Radius
 //type Plane = Normal * Offset
 
+//TODO put in abstract class
+let getIntersections (_,i1,i2) = (i1,i2)
+
+let hasIntersection (hasIntersection : bool,_,_) = hasIntersection
+
+//let hasIntersection (hasIntersection: bool,_) = hasIntersection
+
 type Ray =
     struct
         val Origin : Vector3
@@ -26,42 +33,33 @@ type Ray =
 type Sphere(sphereCenter : Origin,radius : Radius) =
     member this.Center = sphereCenter
     member this.Radius = radius
+    member this.Intersections (ray : Ray) = 
+        let centerToRay = ray.Origin - this.Center
+        let dirDotCenterToRay = Vector3.Dot(ray.Direction ,centerToRay)
+        let discriminant = 
+            MathF.Pow(dirDotCenterToRay, 2.0f) - centerToRay.LengthSquared() + this.Radius**2.0f
+        if discriminant < 0.0f then (false, -1.0f,-1.0f)
+        else if round discriminant 1 = 0.0f then (true,-dirDotCenterToRay,-1.0f)
+        else (true,-dirDotCenterToRay + MathF.Sqrt(discriminant),-dirDotCenterToRay - MathF.Sqrt(discriminant))
+    member this.ClosestIntersection (ray : Ray) = 
+        smallestNonNegative (getIntersections (this.Intersections (ray : Ray)))
+    member this.IntersectWith (t : float32) (ray : Ray) =
+        ((ray.Origin + t*ray.Direction) - this.Center).Length() <= this.Radius
+    member this.NormalToPointOnSphere (positionOnSphere:Vector3) =
+        Vector3.Normalize(positionOnSphere - this.Center)
 
+type Plane(plane : System.Numerics.Plane) = 
+    member this.Plane = plane
+    member this.Normal = this.Plane.Normal
+    member this.Intersection (ray:Ray) =
+        let numerator = -this.Plane.D - Plane.DotNormal(this.Plane,ray.Origin) 
+        let denominator = Plane.DotNormal(this.Plane,ray.Direction)
+        if Math.Abs(round denominator 2) < 0.01f  then (false, 0.0f)
+        else (true, numerator / denominator)
 
-let hasIntersection (hasIntersection : bool,_,_) = hasIntersection
-
-//let hasIntersection (hasIntersection: bool,_) = hasIntersection
-
-let getIntersections (_,i1,i2) = (i1,i2)
-
-let intersectSphere (t : float32) (ray : Ray) (sphere : Sphere) =
-    ((ray.Origin + t*ray.Direction) - sphere.Center).Length() <= sphere.Radius
-
-//TODO: Refactor to class
-let sphereIntersections (sphere : Sphere) (ray : Ray) =
-    let centerToRay = ray.Origin - sphere.Center
-    let dirDotCenterToRay = Vector3.Dot(ray.Direction ,centerToRay)
-    let discriminant = 
-        MathF.Pow(dirDotCenterToRay, 2.0f) - centerToRay.LengthSquared() + sphere.Radius**2.0f
-    if discriminant < 0.0f then (false, -1.0f,-1.0f)
-    else if round discriminant 1 = 0.0f then (true,-dirDotCenterToRay,-1.0f)
-    else (true,-dirDotCenterToRay + MathF.Sqrt(discriminant),-dirDotCenterToRay - MathF.Sqrt(discriminant))
-
-let sphereClosestIntersection (sphere: Sphere) (ray : Ray) =
-     smallestNonNegative (getIntersections (sphereIntersections (sphere : Sphere) (ray : Ray)))
-
-let sphereNormal (positionOnSphere:Vector3) (center:Vector3) =
-    Vector3.Normalize(positionOnSphere - center)
-
- //TODO: Refactor to class
-let planeIntersection (plane : Plane) (ray : Ray) =
-    let numerator = -plane.D - Plane.DotNormal(plane,ray.Origin) 
-    let denominator = Plane.DotNormal(plane,ray.Direction)
-    if Math.Abs(round denominator 2) < 0.01f  then (false, 0.0f)
-    else (true, numerator / denominator)
 
 let isRayObstructed (spheres : Sphere list ) (ray : Ray) =
     let intersections = 
-        seq { for sphere in spheres do yield hasIntersection (sphereIntersections sphere ray)}
+        seq { for sphere in spheres do yield hasIntersection (sphere.Intersections ray)}
     Seq.fold (fun b1 b2 -> b1 || b2) false intersections
 
