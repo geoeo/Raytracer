@@ -60,6 +60,7 @@ let render_scene =
             let dirWS = Vector3.TransformNormal(dirCS,rot)
             let dirNormalized = Vector3.Normalize(dirWS)
             let ray = Ray(cameraWS.Translation, dirNormalized)
+            let angleViewTargetRay = Vector3.Dot(Vector3.Normalize(target),dirNormalized)
             for (origin,radius) in spheres do 
                 let (realSolution,i1,i2) = sphereIntersections (origin,radius)  ray
                 if realSolution then
@@ -76,7 +77,7 @@ let render_scene =
                             maxDepth <- closestInterection
             for plane in planes do 
                 let (realSolution,lambda) = planeIntersection plane ray
-                if realSolution && lambda <= 50.0f && lambda >= 0.0f then // TODO refactor for tmax specific for shapes
+                if realSolution && lambda <= (50.0f/angleViewTargetRay) && lambda >= 0.0f then // TODO refactor for tmax specific for shapes
                     let positionOnPlane = cameraOriginWS + lambda*dirNormalized
                     let normal = plane.Normal
                     let pointToLight = Vector3.Normalize(lightWS - positionOnPlane)
