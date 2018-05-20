@@ -92,21 +92,35 @@ let renderScene = lazy
                         depthBuffer.[px,py] <- t
                         if t > maxDepth then 
                             maxDepth <- t
-            // for surface in surfaces do 
-            //     let (realSolution,t) = surface.Intersect ray
-            //     if surface.IntersectionAcceptable realSolution t dotViewAndTracingRay then
-            //         let positionOnSurface = cameraOriginWS + t*dirNormalized
-            //         let normal = surface.NormalForSurfacePoint positionOnSurface
-            //         let pointToLight = Vector3.Normalize(lightWS - positionOnSurface)
-            //         // TODO refactor this into generic recusive algorithm!
-            //         let rayHitToLight = Ray(positionOnSurface,pointToLight)
-            //         let diffuse = Vector3.Dot(normal,pointToLight)*lightTransportWithObstacle(isRayObstructed spheres rayHitToLight)
-            //         if t < depthBuffer.[px,py] then
-            //             let color = Vector4(0.0f,0.0f,1.0f,1.0f)*diffuse
-            //             frameBuffer.[px,py] <- color
-            //             depthBuffer.[px,py] <- t
-            //             if t > maxDepth then 
-            //                 maxDepth <- t           
+        
+
+
+
+let renderSurfaces = lazy
+    for px in 0..width-1 do
+        for py in 0..height-1 do
+            let dirCS = 
+                rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) fov)
+            let rot = rotation cameraWS
+            let dirWS = Vector3.TransformNormal(dirCS,rot)
+            let dirNormalized = Vector3.Normalize(dirWS)
+            let ray = Ray(cameraWS.Translation, dirNormalized)
+            let dotViewAndTracingRay = Vector3.Dot(Vector3.Normalize(target),dirNormalized)
+            for surface in surfaces do 
+                let (realSolution,t) = surface.Intersect ray
+                if surface.IntersectionAcceptable realSolution t dotViewAndTracingRay then
+                    let positionOnSurface = cameraOriginWS + t*dirNormalized
+                    let normal = surface.NormalForSurfacePoint positionOnSurface
+                    let pointToLight = Vector3.Normalize(lightWS - positionOnSurface)
+                    // TODO refactor this into generic recusive algorithm!
+                    let rayHitToLight = Ray(positionOnSurface,pointToLight)
+                    let diffuse = Vector3.Dot(normal,pointToLight)*lightTransportWithObstacle(surface.IsRayObstructed (List.map Hitable.ToHitable spheres) rayHitToLight)
+                    if t < depthBuffer.[px,py] then
+                        let color = surface.Color*diffuse
+                        frameBuffer.[px,py] <- color
+                        depthBuffer.[px,py] <- t
+                        if t > maxDepth then 
+                            maxDepth <- t   
 
 
 let saveFrameBuffer = lazy
