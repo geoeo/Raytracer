@@ -23,10 +23,17 @@ let depthBuffer = Array2D.create width height System.Single.MaxValue
 let mutable maxDepth = 0.0f
 let squareRange = [200..300]
 
-let spheres = [Sphere(Vector3(0.0f,0.0f,-10.0f),2.0f);Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f)]
+let mutable id : ID = (uint64)1
+
+let assignIDAndIncrement idIn : ID =
+    let toBeAssigned = idIn
+    id <- id + (uint64)1
+    toBeAssigned
+
+let spheres = [Sphere(Vector3(0.0f,0.0f,-10.0f),2.0f,assignIDAndIncrement id);Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f,assignIDAndIncrement id)]
 //let spheres = []
 
-let planes = [Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)))]
+let planes = [Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)),assignIDAndIncrement id)]
 
 let surfaces : (Hitable list) = List.concat [List.map (fun x -> x:> Hitable) spheres; List.map (fun x -> x:> Hitable) planes]
 
@@ -114,6 +121,7 @@ let renderSurfaces = lazy
                     let pointToLight = Vector3.Normalize(lightWS - positionOnSurface)
                     // TODO refactor this into generic recusive algorithm!
                     let rayHitToLight = Ray(positionOnSurface,pointToLight)
+                    // TODO refator insection to take all objects except current
                     let diffuse = Vector3.Dot(normal,pointToLight)*lightTransportWithObstacle(surface.IsRayObstructed (List.map Hitable.ToHitable spheres) rayHitToLight)
                     if t < depthBuffer.[px,py] then
                         let color = surface.Color*diffuse

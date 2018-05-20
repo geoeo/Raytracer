@@ -12,6 +12,7 @@ type Offset = float32
 type Radius = float32
 type LineParameter = float32
 type Point = Vector3
+type ID = uint64
 
 type Ray =
     struct
@@ -29,11 +30,13 @@ type Hitable() =
     abstract member NormalForSurfacePoint : Point -> Normal
     abstract member IsRayObstructed: Hitable list -> Ray -> bool
     abstract member Color: Vector4
+    abstract member ID: ID
 
 
     static member ToHitable x = x:> Hitable 
     member this.TMin = 0.01f
     member this.TMax = 50.0f
+
 
 
     default this.HasIntersection _ = false
@@ -42,9 +45,11 @@ type Hitable() =
     default this.NormalForSurfacePoint _ = Vector3.Zero
     default this.IsRayObstructed _ _ = false
     default this.Color = Rgba32.White.ToVector4()
+    default this.ID = (uint64)0
 
-type Sphere(sphereCenter : Origin,radius : Radius) =
+type Sphere(sphereCenter : Origin,radius : Radius, id: ID) =
     inherit Hitable()
+    override this.ID = id
     member this.Center = sphereCenter
     member this.Radius = radius
     override this.Color = Rgba32.RoyalBlue.ToVector4()
@@ -72,8 +77,9 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
     //TODO Implement Is Ray obstructed for spheres
 
 
-type Plane(plane : System.Numerics.Plane) = 
+type Plane(plane : System.Numerics.Plane, id : ID) = 
     inherit Hitable()
+    override this.ID = id
     member this.Plane = plane
     member this.Normal = this.Plane.Normal
     override this.Color = Rgba32.Snow.ToVector4()
