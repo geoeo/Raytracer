@@ -21,7 +21,7 @@ let defaultColor = Rgba32.DarkGray
 // let frameBuffer = Array2D.create width height defaultColor
 let frameBuffer = Array2D.create width height Vector4.One
 let depthBuffer = Array2D.create width height System.Single.MaxValue
-let mutable maxDepth = 0.0f
+let mutable maxFrameBufferDepth = 0.0f
 let squareRange = [200..300]
 
 let maxRecursionLevel = 1us
@@ -36,7 +36,7 @@ let assignIDAndIncrement idIn : ID =
 let spheres 
     = [
         Lambertian(assignIDAndIncrement id,Sphere(Vector3(0.0f,0.0f,-10.0f),2.0f), Material(Vector3(0.0f,1.0f,0.0f)));
-        // Lambertian(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Rgba32.Red.ToVector4()))
+        Lambertian(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Vector3(1.0f,0.0f,0.0f)))
       ]
 // let spheres = []
 
@@ -45,50 +45,70 @@ let planes = [Lambertian(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(
 //let planes = []
 let surfaces : (Surface list) = List.concat [List.map Surface.ToSurface spheres;List.map Surface.ToSurface planes]
 
-let cameraOriginWS = Vector3(-1.0f,6.0f,2.0f)
+let cameraOriginWS = Vector3(-1.0f,6.0f,10.0f)
 let lookAt = Vector3(0.0f,1.0f,-10.0f)
 
-let lightWS = Vector3(3.0f, 5.0f, -5.0f)
+let lightWS = Vector3(4.0f, 3.0f, -5.0f)
+// let lightWS = Vector3(-1.0f, 6.0f, 10.0f)
 let viewMatrix = worldToCamera cameraOriginWS lookAt Vector3.UnitY
 
 let cameraWS = cameraToWorld viewMatrix 
 
 let fov = MathF.PI/4.0f
 
-let rec rayTrace (ray : Ray) traceLevel =
+let weightList (contributions : Raytracer.Material.Color list) =
+    let stepSize = MathF.PI/(2.0f*((float32)contributions.Length))
+    let weightingSamples = List.map MathF.Cos [0.0f..stepSize..(MathF.PI/2.0f-stepSize)]
+    List.map (fun (a,b) -> a*b) (List.zip weightingSamples contributions)
+
+
+
+
+//Todo: investigage attenuation + color spaces
+//TODO: check how rays are composed. If the last ray cotributes, all rays should
+let composeContributions (contributions : Raytracer.Material.Color list) = 
+    match contributions with 
+        | [] -> Vector3.Zero
+        | list -> List.reduce (fun acc shading -> acc+shading)  (weightList (List.rev contributions))
+
+
+let updateContributions doesRayContribute shading contributions =
+    match  doesRayContribute with   
+        | true -> (shading :: contributions) 
+        | false -> contributions
+
+let rec rayTrace (ray : Ray) (contributions : Raytracer.Material.Color list) traceLevel =
     if traceLevel >= maxRecursionLevel 
     then 
-        Vector3.Zero
+        contributions
     else
         let newLevel = traceLevel + 1us
         let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
-        let mutable color = Vector3.Zero
-        for surface in surfaces do 
-            let surfaceGeometry = surface.Geometry
-            let (realSolution,t) = surfaceGeometry.Intersect ray
-            if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay 
-            then
-                let positionOnSurface = ray.Origin + t*ray.Direction
-                let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
-                let (scatterSuccess,outRay,shading) = surface.Scatter ray positionOnSurface lightWS allOtherGeometries          
-                color <- shading+(rayTrace outRay newLevel)
-        color
+        let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
+        let surfaceGeometry = surface.Geometry
+        if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay 
+        then
+            let positionOnSurface = ray.Origin + t*ray.Direction
+            let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
+            let (doesRayContribute,outRay,shading) = surface.Scatter ray positionOnSurface lightWS allOtherGeometries 
+            (rayTrace outRay (updateContributions doesRayContribute shading contributions) newLevel)
+        else 
+            contributions
 
 let rayTraceBase (ray : Ray) px py = 
     let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
-    for surface in surfaces do 
-        let surfaceGeometry = surface.Geometry
-        let (realSolution,t) = surfaceGeometry.Intersect ray
-        if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay then
-            let positionOnSurface = ray.Origin + t*ray.Direction
-            let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
-            let (scatterSuccess,outRay,shading) = surface.Scatter ray positionOnSurface lightWS allOtherGeometries
-            if t < depthBuffer.[px,py] then
-                let color = shading + (rayTrace outRay 0us)
-                frameBuffer.[px,py] <- Vector4(color,1.0f)
-                depthBuffer.[px,py] <- t
-                if t > maxDepth then 
-                    maxDepth <- t  
+    let (realSolution,t,surface) = findClosestIntersection ray surfaces
+    let surfaceGeometry = surface.Geometry
+    if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay then
+        let positionOnSurface = ray.Origin + t*ray.Direction
+        let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
+        let (doesRayContribute,outRay,shading) = surface.Scatter ray positionOnSurface lightWS allOtherGeometries
+        if t < depthBuffer.[px,py] then
+            let color = composeContributions(updateContributions doesRayContribute shading (rayTrace outRay [] 0us))
+            frameBuffer.[px,py] <- Vector4(color,1.0f)
+            depthBuffer.[px,py] <- t
+            if t > maxFrameBufferDepth then 
+                maxFrameBufferDepth <- t  
 
 
 
@@ -121,7 +141,7 @@ let saveDepthBuffer = lazy
         using(new Image<Rgba32>(width,height))(fun image -> 
             for px in 0..width-1 do
                 for py in 0..height-1 do
-                    let color = Vector4(Vector3(depthBuffer.[px,py]/maxDepth),1.0f)
+                    let color = Vector4(Vector3(depthBuffer.[px,py]/maxFrameBufferDepth),1.0f)
                     image.Item(px,py) <- Rgba32(color)
                 
             image.SaveAsJpeg(output)

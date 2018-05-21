@@ -16,21 +16,31 @@ type Ray =
     struct
         val Origin : Vector3
         val Direction : Vector3
+        val SurfaceOrigin : uint64
 
-        new(origin, dir) = { Origin = origin; Direction = normalized(dir) }
+        new(origin, dir) = { Origin = origin; Direction = normalized(dir);SurfaceOrigin = (uint64)0 }
+        new(origin, dir, id) = { Origin = origin; Direction = normalized(dir);SurfaceOrigin = id }
 
     end
 
-[<AbstractClass>]
 type Hitable() =
     abstract member HasIntersection: Ray -> bool
     abstract member Intersect: Ray -> bool*LineParameter
     abstract member IntersectionAcceptable : bool -> LineParameter -> float32  -> bool
     abstract member NormalForSurfacePoint : Point -> Normal
+    abstract member IsObstructedBySelf: Ray -> bool
 
     static member ToHitable x = x:> Hitable 
-    member this.TMin = 0.01f
+    // effects shadow acne
+    member this.TMin = 0.0001f
     member this.TMax = 50.0f
+
+    default this.HasIntersection _ = false
+    default this.Intersect _ = (false, 0.0f)
+    default this.IntersectionAcceptable _ _ _ = false
+    default this.NormalForSurfacePoint _ = Vector3.Zero
+    default this.IsObstructedBySelf _ = false
+
 
     member this.IsSurfaceIntersectionInfrontOf (ray : Ray) (tCompare : LineParameter) = 
         let (hasIntersections,t) = this.Intersect ray
@@ -46,8 +56,9 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
         let dirDotCenterToRay = Vector3.Dot(ray.Direction ,centerToRay)
         let discriminant = 
             MathF.Pow(dirDotCenterToRay, 2.0f) - centerToRay.LengthSquared() + this.Radius**2.0f
-        if discriminant < 0.0f then (false, 0.0f,0.0f)
-        else if round discriminant 1 = 0.0f then (true,-dirDotCenterToRay,0.0f)
+        if round discriminant 5 < 0.0f then (false, 0.0f,0.0f)
+        // TODO: may cause alsiasing investigate around sphere edges
+        else if round discriminant 5 = 0.0f then (true,-dirDotCenterToRay,System.Single.MinValue)
         else (true,-dirDotCenterToRay + MathF.Sqrt(discriminant),-dirDotCenterToRay - MathF.Sqrt(discriminant))
     override this.Intersect (ray : Ray) = 
         let (hasIntersection,i1,i2) = this.Intersections (ray : Ray)
@@ -61,6 +72,9 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
         hasIntersection
     override this.IntersectionAcceptable hasIntersection t _ =
         hasIntersection && t > this.TMin
+    override this.IsObstructedBySelf ray =
+        let (b,i1,i2) = this.Intersections ray
+        this.IntersectionAcceptable b (MathF.Max(i1,i2)) 1.0f
 
 
 type Plane(plane : System.Numerics.Plane) = 
@@ -75,6 +89,7 @@ type Plane(plane : System.Numerics.Plane) =
     override this.HasIntersection (ray:Ray) = 
         let (hasIntersection,_) = this.Intersect ray 
         hasIntersection
+    // dotView factor ensures sampling "straight" at very large distances due to fov
     override this.IntersectionAcceptable hasIntersection t dotViewAndTracingRay =
         hasIntersection && t > this.TMin && t <= (this.TMax/dotViewAndTracingRay)
     override this.NormalForSurfacePoint _ =
@@ -84,11 +99,22 @@ let ParameterToPointForRay (ray : Ray) (point : Point) =
     if ray.Direction.X = 0.0f then (point.Y - ray.Origin.Y)/ray.Direction.Y
     else (point.X - ray.Origin.X)/ray.Direction.X
 
-
 let IsRayObstructed (surfaces : Hitable list) (ray : Ray) (lightWS: Point) = 
     let t_HitLight = ParameterToPointForRay ray lightWS
 
     let intersections = 
         seq { for surface in surfaces do yield (surface.IsSurfaceIntersectionInfrontOf ray t_HitLight)}
     Seq.fold (fun b1 b2 -> b1 || b2) false intersections
+
+let smallestIntersection (b,t,x) (b_new,t_new,x_new) =
+    if t <= t_new then (b,t,x)
+    else (b_new,t_new,x_new)
+
+let flattenIntersection ((b,t),x) = (b,t,x)
+
+let distanceOfIntersection (ray : Ray) (t : LineParameter) =
+    let line = (ray.Origin + t*ray.Direction)
+    line.Length()
+
+       
 
