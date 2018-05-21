@@ -4,6 +4,10 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0002" />
+    <ProjectReference Include="/Users/marchaubenstock/Workspace/DotNet/henzai/Henzai/Henzai.csproj"/>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Numerics.fs" />
     <Compile Include="Camera.fs" />
     <Compile Include="Material.fs" />
@@ -11,8 +15,5 @@
     <Compile Include="Surface.fs" />
     <Compile Include="Scene.fs" />
     <Compile Include="Program.fs" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0002" />
   </ItemGroup>
 </Project>

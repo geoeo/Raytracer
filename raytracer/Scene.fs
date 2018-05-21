@@ -24,19 +24,26 @@ let depthBuffer = Array2D.create width height System.Single.MaxValue
 let mutable maxDepth = 0.0f
 let squareRange = [200..300]
 
-let mutable id : ID = (uint64)1
+let maxRecursionLevel = 1us
+
+let mutable id : ID = 1UL
 
 let assignIDAndIncrement idIn : ID =
     let toBeAssigned = idIn
-    id <- id + (uint64)1
+    id <- id + 1UL
     toBeAssigned
 
-let spheres = [Surface(assignIDAndIncrement id,Sphere(Vector3(0.0f,0.0f,-10.0f),2.0f), Material(Rgba32.RoyalBlue.ToVector4()));Surface(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Rgba32.RoyalBlue.ToVector4()))]
-//let spheres = []
+let spheres 
+    = [
+        Lambertian(assignIDAndIncrement id,Sphere(Vector3(0.0f,0.0f,-10.0f),2.0f), Material(Vector3(0.0f,1.0f,0.0f)));
+        // Lambertian(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Rgba32.Red.ToVector4()))
+      ]
+// let spheres = []
 
-let planes = [Surface(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))),Material(Rgba32.Snow.ToVector4()))]
+
+let planes = [Lambertian(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))),Material(Vector3(1.0f,1.0f,1.0f)))]
 //let planes = []
-let surfaces : (Surface list) = List.concat [spheres; planes]
+let surfaces : (Surface list) = List.concat [List.map Surface.ToSurface spheres;List.map Surface.ToSurface planes]
 
 let cameraOriginWS = Vector3(-1.0f,6.0f,2.0f)
 let lookAt = Vector3(0.0f,1.0f,-10.0f)
@@ -48,6 +55,42 @@ let cameraWS = cameraToWorld viewMatrix
 
 let fov = MathF.PI/4.0f
 
+let rec rayTrace (ray : Ray) traceLevel =
+    if traceLevel >= maxRecursionLevel 
+    then 
+        Vector3.Zero
+    else
+        let newLevel = traceLevel + 1us
+        let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
+        let mutable color = Vector3.Zero
+        for surface in surfaces do 
+            let surfaceGeometry = surface.Geometry
+            let (realSolution,t) = surfaceGeometry.Intersect ray
+            if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay 
+            then
+                let positionOnSurface = ray.Origin + t*ray.Direction
+                let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
+                let (scatterSuccess,outRay,shading) = surface.Scatter ray positionOnSurface lightWS allOtherGeometries          
+                color <- shading+(rayTrace outRay newLevel)
+        color
+
+let rayTraceBase (ray : Ray) px py = 
+    let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
+    for surface in surfaces do 
+        let surfaceGeometry = surface.Geometry
+        let (realSolution,t) = surfaceGeometry.Intersect ray
+        if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay then
+            let positionOnSurface = ray.Origin + t*ray.Direction
+            let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
+            let (scatterSuccess,outRay,shading) = surface.Scatter ray positionOnSurface lightWS allOtherGeometries
+            if t < depthBuffer.[px,py] then
+                let color = shading + (rayTrace outRay 0us)
+                frameBuffer.[px,py] <- Vector4(color,1.0f)
+                depthBuffer.[px,py] <- t
+                if t > maxDepth then 
+                    maxDepth <- t  
+
+
 
 let renderScene = lazy
     for px in 0..width-1 do
@@ -57,27 +100,9 @@ let renderScene = lazy
             let rot = rotation cameraWS
             let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
             let ray = Ray(cameraWS.Translation, dirWS)
-            let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),dirWS)
-            for surface in surfaces do 
-                let surfaceGeometry = surface.Geometry
-                let (realSolution,t) = surfaceGeometry.Intersect ray
-                if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay then
-                    let positionOnSurface = cameraOriginWS + t*dirWS
-                    let normal = surfaceGeometry.NormalForSurfacePoint positionOnSurface
-                    let pointToLight = Vector3.Normalize(lightWS - positionOnSurface)
-                    // TODO refactor this into generic recusive algorithm!
-                    let rayHitToLight = Ray(positionOnSurface,pointToLight)
-                    // TODO refator insection to take all objects except current
-                    let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
-                    let attenuation = AttenuationForRay(IsRayObstructed allOtherGeometries rayHitToLight lightWS)
-                    let diffuse 
-                        = Vector3.Dot(normal,pointToLight)*attenuation
-                    if t < depthBuffer.[px,py] then
-                        let color = surface.Material.Color*diffuse
-                        frameBuffer.[px,py] <- color
-                        depthBuffer.[px,py] <- t
-                        if t > maxDepth then 
-                            maxDepth <- t   
+            rayTraceBase ray px py |> ignore 
+
+
 
 
 let saveFrameBuffer = lazy

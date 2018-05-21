@@ -27,26 +27,14 @@ type Hitable() =
     abstract member Intersect: Ray -> bool*LineParameter
     abstract member IntersectionAcceptable : bool -> LineParameter -> float32  -> bool
     abstract member NormalForSurfacePoint : Point -> Normal
-    //abstract member IsSurfaceIntersectionInfrontOf: Ray -> LineParameter -> bool
 
     static member ToHitable x = x:> Hitable 
-    member this.TMin = 0.0f
+    member this.TMin = 0.01f
     member this.TMax = 50.0f
 
     member this.IsSurfaceIntersectionInfrontOf (ray : Ray) (tCompare : LineParameter) = 
         let (hasIntersections,t) = this.Intersect ray
-        if hasIntersections && t > 0.0f then t < tCompare else false
-
-
-    // member this.IsRayObstructed (surfaces : Hitable list) ray = 
-    //     let intersections = 
-    //         seq { for surface in surfaces do yield this.HasIntersection ray}
-    //     Seq.fold (fun b1 b2 -> b1 || b2) false intersections
-
-    //default this.HasIntersection _ = false
-    //default this.Intersect _ = (false,0.0f)
-    //default this.IntersectionAcceptable _ _ _ = false
-    //default this.NormalForSurfacePoint _ = Vector3.Zero
+        if hasIntersections && t > this.TMin then t < tCompare else false
 
 type Sphere(sphereCenter : Origin,radius : Radius) =
     inherit Hitable()
