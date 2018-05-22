@@ -18,6 +18,10 @@ let roundVec3 (vec3:Vector3) (digits:int) =
 let toVec3 (vec4:Vector4) =
     Vector3(vec4.X,vec4.Y,vec4.Z)
 
+let applyFuncToVector3 func (vec : Vector3) = Vector3(func vec.X,func vec.Y,func vec.Z)
+
+let power exp b = MathF.Pow(b,exp)
+
         
 
 

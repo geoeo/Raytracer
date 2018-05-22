@@ -11,7 +11,7 @@ type ID = uint64
 
 let randomState = new Random()
 
-let attenuate distance = 1.0f/(1.0f + 0.045f*distance + 0.0007f*(distance**2.0f))
+let attenuate distance = 1.0f/(1.0f + 0.5f*distance + 0.02f*(distance**2.0f))
 
 let LightTransport isObstructed =
     match isObstructed with
@@ -19,11 +19,10 @@ let LightTransport isObstructed =
         | false -> 1.0f
 
 type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
-    abstract member Scatter: Ray -> Point -> Point -> Hitable list -> bool*Ray*Raytracer.Material.Color
-
+    abstract member Scatter: Ray -> LineParameter -> Sphere -> Hitable list -> int -> bool*Ray*Raytracer.Material.Color
     static member ToSurface x = x :> Surface 
 
-    default this.Scatter _ _ _ _ = (false,Ray(Vector3.Zero,Vector3.Zero),this.Material.Color)
+    default this.Scatter _ _ _ _ _ = (false,Ray(Vector3.Zero,Vector3.Zero),this.Material.Color)
 
     member this.ID = id
     member this.Geometry = geometry
@@ -32,27 +31,28 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
 type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id,geometry,material)
 
-    override this.Scatter (incommingRay : Ray) (positionOnSurface : Point) (lightWS: Point) (allOtherGeometries : Hitable list) =
+    override this.Scatter (incommingRay : Ray) (t : LineParameter) (light: Sphere) (allOtherGeometries : Hitable list) (depthLevel : int) =
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
 
+        let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
         let normal = this.Geometry.NormalForSurfacePoint positionOnSurface
-        let pointToLight = lightWS - positionOnSurface
-        let pointToLightNorm = Vector3.Normalize(pointToLight)
-        let rayHitToLight = Ray(positionOnSurface,pointToLightNorm,this.ID)
-
-        //let lightTransport = LightTransport(IsRayObstructed allOtherGeometries rayHitToLight lightWS)
 
         //TODO sample hemisphere
         let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
-        // let outDir = Vector3.Normalize(normal+rand_norm)
-        let outDir = Vector3.Normalize(normal)
+        let outDir = Vector3.Normalize(normal+rand_norm)
+        // let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
-        let diffuseFactor = Vector3.Dot(normal,pointToLightNorm)
-        let atteunuation = attenuate (pointToLight.Length())
-        let isObstructedBySelf = (this.Geometry.IsObstructedBySelf rayHitToLight)
-        let doesRayContribute = (not (IsRayObstructed allOtherGeometries rayHitToLight lightWS)) && (not isObstructedBySelf)
-        (doesRayContribute,outRay,atteunuation*diffuseFactor*this.Material.Color)
+        let (b,t) = light.Intersect outRay
+        //let atteunuationForLight = attenuate (pointToLight.Length())
+        let atteunuationForRay = attenuate t
+        let isObstructedBySelf = (this.Geometry.IsObstructedBySelf outRay)
+        let doesRayContribute = (light.IntersectionAcceptable b t 1.0f) && (not (IsRayObstructed allOtherGeometries outRay light.Center)) && (not isObstructedBySelf)
+        let light = this.Material.Color
+        // let lightDepthAdjusted = applyFuncToVector3 (power (1.0f/(float32)depthLevel) ) light
+        let lightDepthAdjusted = MathF.Pow(0.5f,(float32)depthLevel)*light
+        (doesRayContribute,outRay,light)
+
 
 
 
