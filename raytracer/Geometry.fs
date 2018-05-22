@@ -33,7 +33,7 @@ type Hitable() =
     static member ToHitable x = x:> Hitable 
     // effects shadow acne
     member this.TMin = 0.0001f
-    member this.TMax = 50.0f
+    member this.TMax = 500.0f
 
     default this.HasIntersection _ = false
     default this.Intersect _ = (false, 0.0f)
@@ -71,7 +71,7 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
         let (hasIntersection,_,_) = this.Intersections ray 
         hasIntersection
     override this.IntersectionAcceptable hasIntersection t _ =
-        hasIntersection && t > this.TMin
+        hasIntersection && t > this.TMin && t <= this.TMax
     override this.IsObstructedBySelf ray =
         let (b,i1,i2) = this.Intersections ray
         this.IntersectionAcceptable b (MathF.Max(i1,i2)) 1.0f
@@ -90,8 +90,8 @@ type Plane(plane : System.Numerics.Plane) =
         let (hasIntersection,_) = this.Intersect ray 
         hasIntersection
     // dotView factor ensures sampling "straight" at very large distances due to fov
-    override this.IntersectionAcceptable hasIntersection t dotViewAndTracingRay =
-        hasIntersection && t > this.TMin && t <= (this.TMax/dotViewAndTracingRay)
+    override this.IntersectionAcceptable hasIntersection t dotViewTrace =
+        hasIntersection && t > this.TMin && t <= (this.TMax/dotViewTrace)
     override this.NormalForSurfacePoint _ =
         this.Normal
 

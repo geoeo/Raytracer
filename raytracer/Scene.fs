@@ -20,13 +20,15 @@ let raySampes = [0.1f..0.1f..100.0f]
 
 let defaultColor = Rgba32.DarkGray
 
+let backgroundColor = Vector3.One
+
 // let frameBuffer = Array2D.create width height defaultColor
 let frameBuffer = Array2D.create width height Vector4.Zero
 let depthBuffer = Array2D.create width height System.Single.MaxValue
 let mutable maxFrameBufferDepth = 0.0f
 let squareRange = [200..300]
 
-let maxRecursionLevel = 200us
+let maxRecursionLevel = 5us
 
 let mutable id : ID = 1UL
 
@@ -98,7 +100,7 @@ let rec rayTrace (ray : Ray) (contributions : Raytracer.Material.Color list) tra
         contributions
     else
         let newLevel = traceLevel + 1us
-        let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
+        let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
         let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
         let surfaceGeometry = surface.Geometry
         if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay 
@@ -119,29 +121,32 @@ let rayTraceBase (ray : Ray) px py writeToDepth =
         if writeToDepth then writeToDepthBuffer t px py
         composeContributions(updateContributions doesRayContribute shading (rayTrace outRay [] 1us))
     else
-        Vector3.One
+        backgroundColor
 
-//TODO doesnt work
-let pertrube (ray : Ray) = 
+let pertrube px py = 
     let randomInt = randomState.Next()
     let randomUnsingedInt : uint32 = (uint32) randomInt
     let randVec = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
-    let dirOff = Vector3(randVec.X,randVec.Y,0.0f)
-    Ray(ray.Origin,Vector3.Normalize(ray.Direction+dirOff))
+    let xOff = MathF.Abs(randVec.X)/((float32)(width))
+    let yOff = MathF.Abs(randVec.Y)/((float32)(height))
+    ((float32)px + xOff, (float32)py+yOff)
+    // ((float32)px + (xOff/((float32)(width))), (float32)py+(yOff/((float32)(height))))
 
 let renderScene = lazy
     for px in 0..width-1 do
         for py in 0..height-1 do
-        let dirCS = 
-            rayDirection (pixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) fov)
-        let rot = rotation cameraWS
-        let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
-        let ray = Ray(cameraWS.Translation, dirWS)
-        let color = rayTraceBase ray px py true
-        let colors = color :: List.init (samples-1) (fun _ -> rayTraceBase ray px py false)
-        let avgColor = (List.reduce (fun acc c -> acc+c) colors)/(float32)samples
-        //Gamma correct TODO: refactor
-        frameBuffer.[px,py] <- Vector4(Vector3.SquareRoot(avgColor),1.0f)
+            // offset pixels to achieve antialiasing
+            let (pxOffset,pyOffset) = pertrube px py
+            let dirCS = 
+                rayDirection (pixelToCamera pxOffset pyOffset (float32 width) (float32 height) fov)
+            let rot = rotation cameraWS
+            let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
+            let ray = Ray(cameraWS.Translation, dirWS)
+            let color = rayTraceBase ray px py true
+            let colors = color :: List.init (samples-1) (fun _ -> rayTraceBase ray px py false)
+            let avgColor = (List.reduce (fun acc c -> acc+c) colors)/(float32)samples
+            //Gamma correct TODO: refactor
+            frameBuffer.[px,py] <- Vector4(Vector3.SquareRoot(avgColor),1.0f)
 
 
 let saveFrameBuffer = lazy
