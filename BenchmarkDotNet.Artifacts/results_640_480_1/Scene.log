@@ -1,0 +1,140 @@
+// ***** BenchmarkRunner: Start   *****
+// Found benchmarks:
+//   Scene.renderScene: DefaultJob
+
+// Validating benchmarks:
+// ***** Building 1 benchmark(s) in Parallel: Start   *****
+// ***** Done, took 00:00:06 (6.66 sec)   *****
+// **************************
+// Benchmark: Scene.renderScene: DefaultJob
+// *** Execute ***
+// Launch: 1 / 1
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// Runtime=.NET Core 2.0.5 (CoreCLR 4.6.0.0, CoreFX 4.6.26018.01), 64bit RyuJIT
+// GC=Concurrent Workstation
+// Job: DefaultJob
+
+Pilot  1: 16 op, 7891050000.00 ns, 493.1906 ms/op
+
+IdleWarmup  1: 16 op, 4000.00 ns, 250.0000 ns/op
+IdleWarmup  2: 16 op, 0.00 ns, 0.0000 ns/op
+IdleWarmup  3: 16 op, 0.00 ns, 0.0000 ns/op
+IdleWarmup  4: 16 op, 0.00 ns, 0.0000 ns/op
+IdleWarmup  5: 16 op, 0.00 ns, 0.0000 ns/op
+IdleWarmup  6: 16 op, 0.00 ns, 0.0000 ns/op
+
+IdleTarget  1: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget  2: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget  3: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget  4: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget  5: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget  6: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget  7: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget  8: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget  9: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget 10: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget 11: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget 12: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget 13: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget 14: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget 15: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget 16: 16 op, 0.00 ns, 0.0000 ns/op
+IdleTarget 17: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget 18: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget 19: 16 op, 1000.00 ns, 62.5000 ns/op
+IdleTarget 20: 16 op, 1000.00 ns, 62.5000 ns/op
+
+MainWarmup  1: 16 op, 7752603000.00 ns, 484.5377 ms/op
+MainWarmup  2: 16 op, 7776124000.00 ns, 486.0078 ms/op
+MainWarmup  3: 16 op, 7665186000.00 ns, 479.0741 ms/op
+MainWarmup  4: 16 op, 7592841000.00 ns, 474.5526 ms/op
+MainWarmup  5: 16 op, 7611891000.00 ns, 475.7432 ms/op
+MainWarmup  6: 16 op, 7595161000.00 ns, 474.6976 ms/op
+
+// BeforeMainRun
+MainTarget  1: 16 op, 7605620000.00 ns, 475.3513 ms/op
+MainTarget  2: 16 op, 7603047000.00 ns, 475.1904 ms/op
+MainTarget  3: 16 op, 7602312000.00 ns, 475.1445 ms/op
+MainTarget  4: 16 op, 7615058000.00 ns, 475.9411 ms/op
+MainTarget  5: 16 op, 7612838000.00 ns, 475.8024 ms/op
+MainTarget  6: 16 op, 7602530000.00 ns, 475.1581 ms/op
+MainTarget  7: 16 op, 7618950000.00 ns, 476.1844 ms/op
+MainTarget  8: 16 op, 7596719000.00 ns, 474.7949 ms/op
+MainTarget  9: 16 op, 7621814000.00 ns, 476.3634 ms/op
+MainTarget 10: 16 op, 7616260000.00 ns, 476.0163 ms/op
+MainTarget 11: 16 op, 7622706000.00 ns, 476.4191 ms/op
+MainTarget 12: 16 op, 7612122000.00 ns, 475.7576 ms/op
+MainTarget 13: 16 op, 7606809000.00 ns, 475.4256 ms/op
+MainTarget 14: 16 op, 7591143000.00 ns, 474.4464 ms/op
+MainTarget 15: 16 op, 7609581000.00 ns, 475.5988 ms/op
+
+// AfterMainRun
+Result  1: 16 op, 7605619500.00 ns, 475.3512 ms/op
+Result  2: 16 op, 7603046500.00 ns, 475.1904 ms/op
+Result  3: 16 op, 7602311500.00 ns, 475.1445 ms/op
+Result  4: 16 op, 7615057500.00 ns, 475.9411 ms/op
+Result  5: 16 op, 7612837500.00 ns, 475.8023 ms/op
+Result  6: 16 op, 7602529500.00 ns, 475.1581 ms/op
+Result  7: 16 op, 7618949500.00 ns, 476.1843 ms/op
+Result  8: 16 op, 7596718500.00 ns, 474.7949 ms/op
+Result  9: 16 op, 7621813500.00 ns, 476.3633 ms/op
+Result 10: 16 op, 7616259500.00 ns, 476.0162 ms/op
+Result 11: 16 op, 7622705500.00 ns, 476.4191 ms/op
+Result 12: 16 op, 7612121500.00 ns, 475.7576 ms/op
+Result 13: 16 op, 7606808500.00 ns, 475.4255 ms/op
+Result 14: 16 op, 7591142500.00 ns, 474.4464 ms/op
+Result 15: 16 op, 7609580500.00 ns, 475.5988 ms/op
+GC:  0 0 0 0 0
+
+// AfterAll
+
+Mean = 475.5729 ms, StdErr = 0.1477 ms (0.03%); N = 15, StdDev = 0.5720 ms
+Min = 474.4464 ms, Q1 = 475.1581 ms, Median = 475.5988 ms, Q3 = 476.0162 ms, Max = 476.4191 ms
+IQR = 0.8581 ms, LowerFence = 473.8709 ms, UpperFence = 477.3034 ms
+ConfidenceInterval = [474.9614 ms; 476.1845 ms] (CI 99.9%), Margin = 0.6115 ms (0.13% of Mean)
+Skewness = -0.23, Kurtosis = 1.97, MValue = 2
+
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  BenchmarkDotNet.Artifacts/results/Scene-report.csv
+  BenchmarkDotNet.Artifacts/results/Scene-report-github.md
+  BenchmarkDotNet.Artifacts/results/Scene-report.html
+
+// * Detailed results *
+Scene.renderScene: DefaultJob
+Runtime = .NET Core 2.0.5 (CoreCLR 4.6.0.0, CoreFX 4.6.26018.01), 64bit RyuJIT; GC = Concurrent Workstation
+Mean = 475.5729 ms, StdErr = 0.1477 ms (0.03%); N = 15, StdDev = 0.5720 ms
+Min = 474.4464 ms, Q1 = 475.1581 ms, Median = 475.5988 ms, Q3 = 476.0162 ms, Max = 476.4191 ms
+IQR = 0.8581 ms, LowerFence = 473.8709 ms, UpperFence = 477.3034 ms
+ConfidenceInterval = [474.9614 ms; 476.1845 ms] (CI 99.9%), Margin = 0.6115 ms (0.13% of Mean)
+Skewness = -0.23, Kurtosis = 1.97, MValue = 2
+-------------------- Histogram --------------------
+[474.243 ms ; 476.622 ms) | @@@@@@@@@@@@@@@
+---------------------------------------------------
+
+Total time: 00:03:02 (182.81 sec)
+
+// * Summary *
+
+BenchmarkDotNet=v0.10.14, OS=macOS High Sierra 10.13.4 (17E202) [Darwin 17.5.0]
+Intel Core i5-7360U CPU 2.30GHz (Kaby Lake), 1 CPU, 4 logical and 2 physical cores
+.NET Core SDK=2.1.4
+  [Host]     : .NET Core 2.0.5 (CoreCLR 4.6.0.0, CoreFX 4.6.26018.01), 64bit RyuJIT DEBUG
+  DefaultJob : .NET Core 2.0.5 (CoreCLR 4.6.0.0, CoreFX 4.6.26018.01), 64bit RyuJIT
+
+
+      Method |     Mean |     Error |    StdDev |
+------------ |---------:|----------:|----------:|
+ renderScene | 475.6 ms | 0.6115 ms | 0.5720 ms |
+
+// * Legends *
+  Mean   : Arithmetic mean of all measurements
+  Error  : Half of 99.9% confidence interval
+  StdDev : Standard deviation of all measurements
+  1 ms   : 1 Millisecond (0.001 sec)
+
+// ***** BenchmarkRunner: End *****
+// * Artifacts cleanup *

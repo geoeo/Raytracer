@@ -71,12 +71,12 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
         let (hasIntersection,_,_) = this.Intersections ray 
         hasIntersection
     override this.IntersectionAcceptable hasIntersection t _ =
-        hasIntersection && t > this.TMin && t <= this.TMax
+        hasIntersection && t > this.TMin
     override this.IsObstructedBySelf ray =
         let (b,i1,i2) = this.Intersections ray
         this.IntersectionAcceptable b (MathF.Max(i1,i2)) 1.0f
 
-
+//TODO enforce boundaries so that it is no longer infinite
 type Plane(plane : System.Numerics.Plane) = 
     inherit Hitable()
     member this.Plane = plane

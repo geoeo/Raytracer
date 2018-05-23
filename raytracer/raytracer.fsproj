@@ -5,7 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0002" />
-    <ProjectReference Include="/Users/marchaubenstock/Workspace/DotNet/henzai/Henzai/Henzai.csproj"/>
+    <PackageReference Include="BenchmarkDotNet" Version="0.10.14" />
+    <ProjectReference Include="/Users/marchaubenstock/Workspace/DotNet/henzai/Henzai/Henzai.csproj" Configuration="Release"/>
+    <!-- <Reference Include="/Users/marchaubenstock/Workspace/DotNet/henzai/Henzai/bin/Release/netcoreapp2.0/Henzai.dll"/> -->
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Numerics.fs" />

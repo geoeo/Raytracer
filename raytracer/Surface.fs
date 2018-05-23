@@ -50,7 +50,7 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let doesRayContribute = (light.IntersectionAcceptable b t 1.0f) && (not (IsRayObstructed allOtherGeometries outRay light.Center)) && (not isObstructedBySelf)
         let light = this.Material.Color
         // let lightDepthAdjusted = applyFuncToVector3 (power (1.0f/(float32)depthLevel) ) light
-        let lightDepthAdjusted = MathF.Pow(0.8f,(float32)depthLevel)*light
+        let lightDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*light
         (doesRayContribute,outRay,lightDepthAdjusted)
 
 

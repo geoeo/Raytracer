@@ -1,8 +1,14 @@
 ﻿open Raytracer.Scene
+open BenchmarkDotNet.Running
+
+
+let benchmarkScene = lazy BenchmarkRunner.Run<Raytracer.Scene.Scene>()
 
 [<EntryPoint>]
 let main argv =
-    renderScene.Force()
-    saveFrameBuffer.Force()
-    saveDepthBuffer.Force()
+    let mainScene = new Scene ()
+    mainScene.renderScene ()
+    mainScene.saveFrameBuffer ()
+    mainScene.saveDepthBuffer ()
+    // let summary = benchmarkScene.Force()
     0 // return an integer exit code
