@@ -23,7 +23,7 @@ let LightTransport isObstructed =
 
 
 type Surface =
-        abstract member Scatter: Ray -> LineParameter -> Sphere -> Hitable list -> int -> bool*Ray*Raytracer.Material.Color
+        abstract member Scatter: Ray -> LineParameter -> Hitable -> Hitable list -> int -> bool*Ray*Raytracer.Material.Color
         abstract member ID : ID
         abstract member Geometry : Hitable
         abstract member Material : Material
@@ -47,7 +47,7 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         member this.Geometry = geometry
         member this.Material = material
 
-        member this.Scatter (incommingRay : Ray) (t : LineParameter) (light: Sphere) (allOtherGeometries : Hitable list) (depthLevel : int) =
+        member this.Scatter (incommingRay : Ray) (t : LineParameter) (light: Hitable) (allOtherGeometries : Hitable list) (depthLevel : int) =
             let randomInt = randomState.Next()
             let randomUnsingedInt : uint32 = (uint32) randomInt
 
@@ -63,7 +63,7 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
             //let atteunuationForLight = attenuate (pointToLight.Length())
             let atteunuationForRay = attenuate t
             let isObstructedBySelf = (geometry.IsObstructedBySelf outRay)
-            let doesRayContribute = (light.IntersectionAcceptable b t 1.0f) && (not (IsRayObstructed allOtherGeometries outRay light.Center)) && (not isObstructedBySelf)
+            let doesRayContribute = (light.IntersectionAcceptable b t 1.0f) && (DoesRayTransportLight allOtherGeometries outRay light) && (not isObstructedBySelf)
             let light = material.Color
             // let lightDepthAdjusted = applyFuncToVector3 (power (1.0f/(float32)depthLevel) ) light
             let lightDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*light
@@ -86,7 +86,7 @@ let findClosestIntersection (ray : Ray) (surfaces : Surface list) =
     let allIntersections = List.map flattenIntersection (List.map (fun (x : Surface) -> (x.Geometry.Intersect ray),x) surfaces)
     let allIntersectionsWithRealSolutions = List.filter (fun (b,t,v) -> b) allIntersections
     match allIntersectionsWithRealSolutions with 
-        | [] -> (false,0.0f, NoSurface(0UL,Hitable(),Material(Vector3.Zero)) :> Surface)
+        | [] -> (false,0.0f, NoSurface(0UL,NotHitable(),Material(Vector3.Zero)) :> Surface)
         | _ -> List.reduce (fun smallest current -> smallestIntersection smallest current) allIntersectionsWithRealSolutions
 
 
