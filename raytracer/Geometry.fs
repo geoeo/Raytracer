@@ -42,25 +42,13 @@ type Hitable ()  =
     default this.NormalForSurfacePoint _ = Vector3.Zero
     default this.IsObstructedBySelf _ = false
 
-
-let ToHitable x = x:> Hitable 
-
 // Does the ray penetrating the surface have a t < tCompare
 let IsIntersectionInfrontOf (geometry : Hitable) (ray : Ray) (tCompare : LineParameter) = 
         let (hasIntersections,t) = geometry.Intersect ray
         if hasIntersections && t > geometry.TMin then t < tCompare else false
 
 
-type NotHitable() =
-    inherit Hitable ()
-
-    // member this.HasIntersection _ = false
-    // member this.Intersect _ = (false, 0.0f)
-    // member this.IntersectionAcceptable _ _ _ = false
-    // member this.NormalForSurfacePoint _ = Vector3.Zero
-    // member this.IsObstructedBySelf _ = false
-
-
+type NotHitable() = inherit Hitable ()
 type Sphere(sphereCenter : Origin,radius : Radius) =
     inherit Hitable () with
 
@@ -80,9 +68,6 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
             else if round discriminant 5 = 0.0f then (true,-dirDotCenterToRay,System.Single.MinValue)
             else (true,-dirDotCenterToRay + MathF.Sqrt(discriminant),-dirDotCenterToRay - MathF.Sqrt(discriminant))
 
-    // interface Hitable with
-        // override this.TMin = 0.0001f
-        // override this.TMax = 500.0f
         override this.Intersect (ray : Ray) = 
             let (hasIntersection,i1,i2) = this.Intersections (ray : Ray)
             (hasIntersection,MathF.Min(i1,i2))
@@ -104,9 +89,6 @@ type Plane(plane : System.Numerics.Plane) =
         member this.Plane = plane
         member this.Normal = this.Plane.Normal
 
-    // interface Hitable with
-        // override this.TMin = 0.0001f
-        // override this.TMax = 500.0f
         override this.Intersect (ray:Ray) =
             let numerator = -this.Plane.D - Plane.DotNormal(this.Plane,ray.Origin) 
             let denominator = Plane.DotNormal(this.Plane,ray.Direction)

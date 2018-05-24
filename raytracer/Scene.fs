@@ -46,15 +46,13 @@ type Scene () =
 
     let planes = [Lambertian(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))),Material(Vector3(1.0f,1.0f,1.0f)))]
     //let planes = []
-    let surfaces : (Surface list) = List.concat [List.map Surface.ToSurface spheres;List.map Surface.ToSurface planes]
+    let surfaces : (Surface list) = List.concat [List.map ToSurface spheres;List.map ToSurface planes]
 
     let cameraOriginWS = Vector3(-1.0f,6.0f,10.0f)
     let lookAt = Vector3(0.0f,1.0f,-10.0f)
 
     // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
     let lightWS = Vector3(100.0f, 100.0f, 100.0f)
-
-
     let lightSphere = Sphere(lightWS,100.0f)
     let viewMatrix = worldToCamera cameraOriginWS lookAt Vector3.UnitY
 

@@ -20,17 +20,15 @@ let LightTransport isObstructed =
         | true -> 0.0f
         | false -> 1.0f
         
-
 [<AbstractClass>]
 type Surface(id: ID, geometry : Hitable, material : Material) =
-        abstract member Scatter: Ray -> LineParameter -> Hitable -> Hitable list -> int -> bool*Ray*Raytracer.Material.Color
-        member this.ID = id
-        member this.Geometry = geometry
-        member this.Material = material
+    abstract member Scatter: Ray -> LineParameter -> Hitable -> Hitable list -> int -> bool*Ray*Raytracer.Material.Color
+    member this.ID = id
+    member this.Geometry = geometry
+    member this.Material = material
+    default this.Scatter _ _ _ _ _ = (false,Ray(Vector3.Zero,Vector3.Zero),material.Color)
 
-        // default this.Scatter _ _ _ _ _ = (false,Ray(Vector3.Zero,Vector3.Zero),material.Color)
-
-let ToSurface x = x :> Surface 
+// let ToSurface x = upcast x : Surface 
 
 type NoSurface(id: ID, geometry : Hitable, material : Material) =
     inherit Surface(id, geometry, material) with
@@ -63,7 +61,7 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         (doesRayContribute,outRay,lightDepthAdjusted)
 
 
-
+let ToSurface x = upcast x : Surface
 
 let AllSurfacesWithoutId (surfaces : Surface list) (id : ID) =
     List.filter (fun (surface : Surface) -> surface.ID <> id) surfaces
@@ -80,8 +78,8 @@ let findClosestIntersection (ray : Ray) (surfaces : Surface list) =
     let allIntersectionsWithRealSolutions = List.filter (fun (b,t,v) -> b) allIntersections
     let closestIntersection : bool*LineParameter*Surface = 
         match allIntersectionsWithRealSolutions with 
-            | [] -> (false,0.0f, NoSurface(0UL,NotHitable(),Material(Vector3.Zero)):> Surface)
-            | _ -> List.reduce (fun smallest current -> smallestIntersection smallest current) allIntersectionsWithRealSolutions
+            | [] -> (false,0.0f, ToSurface (NoSurface(0UL,NotHitable(),Material(Vector3.Zero))))
+            | x::xs -> List.reduce (fun smallest current -> smallestIntersection smallest current) allIntersectionsWithRealSolutions
     closestIntersection
 
 
