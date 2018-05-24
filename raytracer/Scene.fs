@@ -17,7 +17,7 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 100
+    let samples = 1
 
     let backgroundColor = Vector3.One
 
@@ -100,7 +100,7 @@ type Scene () =
             let newTraceDepth = previousTraceDepth + 1us
             let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
             let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
-            let surfaceGeometry = surface.Geometry
+            let surfaceGeometry : Hitable = surface.Geometry
             if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay 
             then
                 let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)

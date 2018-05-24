@@ -3,3 +3,4 @@
 raytracer/bin/*
 raytracer/obj/*
 raytracer/*.jpg
+BenchmarkDotNet.Artifacts/*
