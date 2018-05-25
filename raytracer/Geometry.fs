@@ -3,6 +3,7 @@ module Raytracer.Geometry
 open System
 open System.Numerics
 open Raytracer.Numerics
+open Assimp
 
 type Origin = Vector3 // Position of a point in 3D space
 type Direction = Vector3  
@@ -18,8 +19,8 @@ type Ray =
         val Direction : Vector3
         val SurfaceOrigin : uint64
 
-        new(origin, dir) = { Origin = origin; Direction = normalized(dir);SurfaceOrigin = 0UL }
-        new(origin, dir, id) = { Origin = origin; Direction = normalized(dir);SurfaceOrigin = id }
+        new(origin, dir) = { Origin = origin; Direction = Normalized(dir);SurfaceOrigin = 0UL }
+        new(origin, dir, id) = { Origin = origin; Direction = Normalized(dir);SurfaceOrigin = id }
 
     end
 
@@ -27,7 +28,7 @@ type Ray =
 type Hitable ()  =
     abstract member HasIntersection: Ray -> bool
     abstract member Intersect: Ray -> bool*LineParameter
-    abstract member IntersectionAcceptable : bool -> LineParameter -> float32  -> bool
+    abstract member IntersectionAcceptable : bool -> LineParameter -> float32 -> Point -> bool
     abstract member NormalForSurfacePoint : Point -> Normal
     abstract member IsObstructedBySelf: Ray -> bool 
     abstract member TMin : float32
@@ -38,21 +39,15 @@ type Hitable ()  =
     default this.TMax = 500.0f
     default this.HasIntersection _ = false
     default this.Intersect _ = (false, 0.0f)
-    default this.IntersectionAcceptable _ _ _ = false
+    default this.IntersectionAcceptable _ _ _ _ = false
     default this.NormalForSurfacePoint _ = Vector3.Zero
     default this.IsObstructedBySelf _ = false
-
-// Does the ray penetrating the surface have a t < tCompare
-let IsIntersectionInfrontOf (geometry : Hitable) (ray : Ray) (tCompare : LineParameter) = 
-        let (hasIntersections,t) = geometry.Intersect ray
-        if hasIntersections && t > geometry.TMin then t < tCompare else false
 
 
 type NotHitable() = inherit Hitable ()
 
 type Sphere(sphereCenter : Origin,radius : Radius) =
     inherit Hitable () with
-
         member this.Center = sphereCenter
         member this.Radius = radius
         member this.GetIntersections (_,i1,i2) = (i1,i2)
@@ -64,9 +59,9 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
             let dirDotCenterToRay = Vector3.Dot(ray.Direction ,centerToRay)
             let discriminant = 
                 MathF.Pow(dirDotCenterToRay, 2.0f) - centerToRay.LengthSquared() + this.Radius**2.0f
-            if round discriminant 5 < 0.0f then (false, 0.0f,0.0f)
+            if Round discriminant 5 < 0.0f then (false, 0.0f,0.0f)
             // TODO: may cause alsiasing investigate around sphere edges
-            else if round discriminant 5 = 0.0f then (true,-dirDotCenterToRay,System.Single.MinValue)
+            else if Round discriminant 5 = 0.0f then (true,-dirDotCenterToRay,System.Single.MinValue)
             else (true,-dirDotCenterToRay + MathF.Sqrt(discriminant),-dirDotCenterToRay - MathF.Sqrt(discriminant))
 
         override this.Intersect (ray : Ray) = 
@@ -77,57 +72,64 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
         override this.HasIntersection ray =
             let (hasIntersection,_,_) = this.Intersections ray 
             hasIntersection
-        override this.IntersectionAcceptable hasIntersection t _ =
+        override this.IntersectionAcceptable hasIntersection t _ _ =
             hasIntersection && t > this.TMin
         override this.IsObstructedBySelf ray =
             let (b,i1,i2) = this.Intersections ray
-            this.IntersectionAcceptable b (MathF.Max(i1,i2)) 1.0f
-
+            this.IntersectionAcceptable b (MathF.Max(i1,i2)) 1.0f Vector3.Zero
+ 
 
 //TODO enforce boundaries so that it is no longer infinite
-type Plane(plane : System.Numerics.Plane) = 
+type Plane(plane : System.Numerics.Plane, topLeft : Point option, width : float32 option, height : float32 option ) = 
     inherit Hitable () with
         member this.Plane = plane
         member this.Normal = this.Plane.Normal
-
+        member this.TopLeft = topLeft
+        member this.Width = width
+        member this.Height = height
         override this.Intersect (ray:Ray) =
             let numerator = -this.Plane.D - Plane.DotNormal(this.Plane,ray.Origin) 
             let denominator = Plane.DotNormal(this.Plane,ray.Direction)
-            if Math.Abs(round denominator 5) < 0.00001f  then (false, 0.0f)
+            if Math.Abs(Round denominator 5) < 0.00001f  then (false, 0.0f)
             else (true, numerator / denominator)
         override this.HasIntersection (ray:Ray) = 
             let (hasIntersection,_) = this.Intersect ray 
             hasIntersection
         // dotView factor ensures sampling "straight" at very large distances due to fov
-        override this.IntersectionAcceptable hasIntersection t dotViewTrace =
-            hasIntersection && t > this.TMin && t <= (this.TMax/dotViewTrace)
+        override this.IntersectionAcceptable hasIntersection t dotViewTrace pointOnSurface =
+            let generalIntersection = hasIntersection && t > this.TMin && t <= (this.TMax/dotViewTrace)
+            match this.TopLeft with
+                | Some topLeft -> generalIntersection
+                | None -> generalIntersection
         override this.NormalForSurfacePoint _ =
             this.Normal
-
         override this.IsObstructedBySelf _ = false
+
+
+/// Does the ray penetrating the surface have a t < tCompare
+let IsIntersectionInfrontOf (geometry : Hitable) (ray : Ray) (tCompare : LineParameter) = 
+        let (hasIntersections,t) = geometry.Intersect ray
+        if hasIntersections && t > geometry.TMin then t < tCompare else false
 
 let ParameterToPointForRay (ray : Ray) (point : Point) =
     if ray.Direction.X = 0.0f then (point.Y - ray.Origin.Y)/ray.Direction.Y
     else (point.X - ray.Origin.X)/ray.Direction.X
 
-let DoesRayTransportLight (surfaces : Hitable list) (ray : Ray) (light: Hitable) = 
-    // let t_HitLight = ParameterToPointForRay ray lightWS
-    let (b,t_HitLight) = light.Intersect ray
-    if light.IntersectionAcceptable b t_HitLight 1.0f then 
-        let intersections = 
-            seq { for surface in surfaces do yield (not (IsIntersectionInfrontOf surface ray t_HitLight))}
-        Seq.fold (fun b1 b2 -> b1 && b2) true intersections
-    else false
+let PointForRay (ray : Ray) (t : LineParameter) = ray.Origin + t*ray.Direction
+
+// let DoesRayTransportLight (surfaces : Hitable list) (ray : Ray) (light: Hitable) = 
+//     // let t_HitLight = ParameterToPointForRay ray lightWS
+//     let (b,t_HitLight) = light.Intersect ray
+//     if light.IntersectionAcceptable b t_HitLight 1.0f then 
+//         let intersections = 
+//             seq { for surface in surfaces do yield (not (IsIntersectionInfrontOf surface ray t_HitLight))}
+//         Seq.fold (fun b1 b2 -> b1 && b2) true intersections
+//     else false
 
 let smallestIntersection (b,t,x) (b_new,t_new,x_new) =
     if t <= t_new then (b,t,x)
     else (b_new,t_new,x_new)
 
 let flattenIntersection ((b,t),x) = (b,t,x)
-
-let distanceOfIntersection (ray : Ray) (t : LineParameter) =
-    let line = (ray.Origin + t*ray.Direction)
-    line.Length()
-
        
 

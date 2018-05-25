@@ -12,15 +12,6 @@ open Henzai.Geometry
 type ID = uint64
 
 let randomState = new Random()
-
-//https://learnopengl.com/Lighting/Light-casters
-//TODO refactor constants
-let attenuate distance = 1.0f/(1.0f + 0.5f*distance + 0.02f*(distance**2.0f))
-
-let LightTransport isObstructed =
-    match isObstructed with
-        | true -> 0.0f
-        | false -> 1.0f
         
 [<AbstractClass>]
 type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
@@ -32,7 +23,7 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
     default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),Vector3.UnitY)
     default this.Emitted = Vector3.Zero
 
-let ToSurface x = upcast x : Surface
+//let ToSurface x = upcast x : Surface
 
 
 type NoSurface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
@@ -41,10 +32,10 @@ type NoSurface(id: ID, geometry : Hitable, material : Raytracer.Material.Materia
 // TODO refactor into geometry class
 let findClosestIntersection (ray : Ray) (surfaces : Surface list) =
     let allIntersections = List.map flattenIntersection (List.map (fun (x : Surface) -> (x.Geometry.Intersect ray),x) surfaces)
-    let allIntersectionsWithRealSolutions = List.filter (fun ((b,t,v) : bool*LineParameter*Surface) ->  v.Geometry.IntersectionAcceptable b t 1.0f) allIntersections
+    let allIntersectionsWithRealSolutions = List.filter (fun ((b,t,v) : bool*LineParameter*Surface) ->  v.Geometry.IntersectionAcceptable b t 1.0f (PointForRay ray t)) allIntersections
     let closestIntersection : bool*LineParameter*Surface = 
         match allIntersectionsWithRealSolutions with 
-            | [] -> (false,0.0f, ToSurface (NoSurface(0UL,NotHitable(),Raytracer.Material.Material(Vector3.Zero))))
+            | [] -> (false,0.0f, upcast (NoSurface(0UL,NotHitable(),Raytracer.Material.Material(Vector3.Zero))))
             | realSolutions -> List.reduce (fun smallest current -> smallestIntersection smallest current) realSolutions
     closestIntersection
 
@@ -72,8 +63,6 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         // let light = normal
         let lightDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*light
         (doesRayContribute,outRay,lightDepthAdjusted)
-
-    // override this.Emitted = 0.05f*this.Material.Color
 
 
 
@@ -103,7 +92,9 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         (doesRayContribute,outRay,lightDepthAdjusted)
 
 
-
+//https://learnopengl.com/Lighting/Light-casters
+//TODO refactor constants
+let attenuate distance = 1.0f/(1.0f + 0.5f*distance + 0.02f*(distance**2.0f))
 let AllSurfacesWithoutId (surfaces : Surface list) (id : ID) =
     List.filter (fun (surface : Surface) -> surface.ID <> id) surfaces
 

@@ -5,28 +5,28 @@ open System.Numerics
 open Raytracer.Numerics
 
 // ndc is [0,1] from top left
-let pixelToNDC x y width height =
+let PixelToNDC x y width height =
     (x + 0.5f)/width , (y+0.5f)/height
 
 // screen space is [-1,1] from top left
 let NDCToScreen (x_ndc , y_ndc) = 2.0f*x_ndc-1.0f , 1.0f-2.0f*y_ndc
 
-let aspectRatio (width:float32) (height:float32) = width/height
+let AspectRatio (width:float32) (height:float32) = width/height
 
 // pixel coordiantes / sample points (X,Y) in camera space (3D)
-let screenToCamera (x_screen, y_screen) aspectRatio fov =
+let ScreenToCamera (x_screen, y_screen) aspectRatio fov =
     x_screen*aspectRatio*MathF.Tan(fov/2.0f) , y_screen*MathF.Tan(fov/2.0f)
 
-let pixelToCamera x y width height fov =
-    screenToCamera (NDCToScreen (pixelToNDC x y width height)) (aspectRatio width height) fov
+let PixelToCamera x y width height fov =
+    ScreenToCamera (NDCToScreen (PixelToNDC x y width height)) (AspectRatio width height) fov
 
     // ray direction wrt to camera
-let rayDirection (cameraPixel_x , cameraPixel_y) =
+let RayDirection (cameraPixel_x , cameraPixel_y) =
     Vector3.Normalize(Vector3(cameraPixel_x,cameraPixel_y,-1.0f))
 
-let worldToCamera  position target up = Matrix4x4.CreateLookAt(position,target,up);
+let WorldToCamera  position target up = Matrix4x4.CreateLookAt(position,target,up);
 
-let cameraToWorld worldToCamera = 
+let CameraToWorld worldToCamera = 
     let success , cameraToWorld = Matrix4x4.Invert(worldToCamera)
     if success then cameraToWorld else failwith "Matrix4x4 Invert Failed"
 
@@ -41,7 +41,7 @@ let cameraToWorldFast (worldToCamera : Matrix4x4) (roundToDigits: int) =
                     0.0f,0.0f,0.0f,0.0f)
     let translation = Vector4(worldToCamera.M41,worldToCamera.M42,worldToCamera.M43,0.0f)
     let trans_inv = Vector4.Transform(translation,rotation)
-    let round x = round x roundToDigits
+    let round x = Round x roundToDigits
     Matrix4x4(worldToCamera.M11,worldToCamera.M21,worldToCamera.M31,0.0f,
               worldToCamera.M12,worldToCamera.M22,worldToCamera.M32,0.0f,
               worldToCamera.M13,worldToCamera.M23,worldToCamera.M33,0.0f,
@@ -49,16 +49,5 @@ let cameraToWorldFast (worldToCamera : Matrix4x4) (roundToDigits: int) =
 
 
 
-let rotation (matrix : Matrix4x4)
-    = Matrix4x4(matrix.M11,matrix.M12,matrix.M13,0.0f,
-                matrix.M21,matrix.M22,matrix.M23,0.0f,
-                matrix.M31,matrix.M32,matrix.M33,0.0f,
-                0.0f,0.0f,0.0f,0.0f)
-
-let transposeRot (matrix : Matrix4x4) =
-        Matrix4x4(matrix.M11,matrix.M21,matrix.M31,0.0f,
-              matrix.M12,matrix.M22,matrix.M32,0.0f,
-              matrix.M13,matrix.M23,matrix.M33,0.0f,
-              0.0f,0.0f,0.0f,0.0f)
 
 

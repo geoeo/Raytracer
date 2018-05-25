@@ -10,6 +10,7 @@ open Raytracer.Surface
 open Raytracer.Camera
 open Raytracer.Geometry
 open Raytracer.Material
+open Raytracer.Numerics
 open Henzai.Sampling
 open BenchmarkDotNet.Attributes
 
@@ -53,15 +54,15 @@ type Scene () =
           ]
     // let spheres = []
 
-    let planes : Surface list = [Lambertian(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))),Material(Vector3(1.0f,1.0f,1.0f)))]
+    let planes : Surface list = [Lambertian(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)),None,None,None),Material(Vector3(1.0f,1.0f,1.0f)))]
     //let planes = []
     let surfaces : (Surface list) = List.concat [spheres;planes;lights]
 
     let cameraOriginWS = Vector3(-1.0f,6.0f,10.0f)
     let lookAt = Vector3(0.0f,1.0f,-10.0f)
-    let viewMatrix = worldToCamera cameraOriginWS lookAt Vector3.UnitY
+    let viewMatrix = WorldToCamera cameraOriginWS lookAt Vector3.UnitY
 
-    let cameraWS = cameraToWorld viewMatrix 
+    let cameraWS = CameraToWorld viewMatrix 
 
     let fov = MathF.PI/4.0f
 
@@ -104,7 +105,7 @@ type Scene () =
             let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
             let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
             let surfaceGeometry : Hitable = surface.Geometry
-            if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f 
+            if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f (PointForRay ray t)
             then
                 let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t ((int)newTraceDepth)
                 let emittedShading = surface.Emitted
@@ -119,7 +120,7 @@ type Scene () =
         let allOtherSurfaces = (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
         let (realSolution,t,surface) = findClosestIntersection ray allOtherSurfaces
         let surfaceGeometry = surface.Geometry
-        if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay then
+        if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay (PointForRay ray t) then
             let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t 0
             if writeToDepth then writeToDepthBuffer t px py
             let emittedShading = surface.Emitted
@@ -146,8 +147,8 @@ type Scene () =
                 // offset pixels to achieve antialiasing
                 let (pxOffset,pyOffset) = pertrube px py
                 let dirCS = 
-                    rayDirection (pixelToCamera pxOffset pyOffset (float32 width) (float32 height) fov)
-                let rot = rotation cameraWS
+                    RayDirection (PixelToCamera pxOffset pyOffset (float32 width) (float32 height) fov)
+                let rot = Rotation cameraWS
                 let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
                 let ray = Ray(cameraWS.Translation, dirWS)
                 let color = rayTraceBase ray px py true
