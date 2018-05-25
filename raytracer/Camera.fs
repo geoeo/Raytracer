@@ -30,9 +30,9 @@ let CameraToWorld worldToCamera =
     let success , cameraToWorld = Matrix4x4.Invert(worldToCamera)
     if success then cameraToWorld else failwith "Matrix4x4 Invert Failed"
 
-// Seems to slightly less precise than Matrix4x4.Invert
-// Since this is an SE3 matrix we can simply transpose R and -R_t*t
-// http://ethaneade.com/lie.pdf
+/// Seems to slightly less precise than Matrix4x4.Invert
+/// Since this is an SE3 matrix we can simply transpose R and -R_t*t
+/// http://ethaneade.com/lie.pdf
 let cameraToWorldFast (worldToCamera : Matrix4x4) (roundToDigits: int) = 
     let rotation 
         = Matrix4x4(-worldToCamera.M11,-worldToCamera.M21,-worldToCamera.M31,0.0f,

@@ -4,6 +4,7 @@ open System
 open System.Numerics
 open Raytracer.Numerics
 open Assimp
+open ImGuiNET
 
 type Origin = Vector3 // Position of a point in 3D space
 type Direction = Vector3  
@@ -13,14 +14,18 @@ type Radius = float32
 type LineParameter = float32
 type Point = Vector3
 
+/// Space inwhich points are compared if they are inside a rectangle
+/// Plane is XY
+let CanonicalPlaneSpace = Vector3(0.0f,0.0f,-1.0f)
+
 type Ray =
     struct
         val Origin : Vector3
         val Direction : Vector3
         val SurfaceOrigin : uint64
 
-        new(origin, dir) = { Origin = origin; Direction = Normalized(dir);SurfaceOrigin = 0UL }
-        new(origin, dir, id) = { Origin = origin; Direction = Normalized(dir);SurfaceOrigin = id }
+        new(origin, dir) = { Origin = origin; Direction = NormalizedOrFail(dir);SurfaceOrigin = 0UL }
+        new(origin, dir, id) = { Origin = origin; Direction = NormalizedOrFail(dir);SurfaceOrigin = id }
 
     end
 
@@ -80,13 +85,29 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
  
 
 //TODO enforce boundaries so that it is no longer infinite
-type Plane(plane : System.Numerics.Plane, topLeft : Point option, width : float32 option, height : float32 option ) = 
+type Plane(plane : System.Numerics.Plane, center : Point option, width : float32 option, height : float32 option ) = 
     inherit Hitable () with
         member this.Plane = plane
         member this.Normal = this.Plane.Normal
-        member this.TopLeft = topLeft
+        member this.Center = center
         member this.Width = width
         member this.Height = height
+        member this.PointLiesInRectangle (point : Point) =
+            let widthOff = this.Width.Value / 2.0f
+            let heightOff = this.Height.Value / 2.0f
+            let R = RotationBetweenUnitVectors this.Normal CanonicalPlaneSpace
+            let kern = if this.Plane.D > 0.0f then -1.0f*this.Plane.D*this.Normal else this.Plane.D*this.Normal
+            let v = point - kern
+            let b = this.Center.Value - kern
+            let newDir = Vector4.Transform((ToHomogeneous v 0.0f), R)
+            let newDir_b = Vector4.Transform((ToHomogeneous b 0.0f), R)
+            let newP = kern + (ToVec3 newDir)
+            let newB = kern + (ToVec3 newDir_b)
+            newP.X <= newB.X + widthOff && 
+            newP.X >= newB.X - widthOff && 
+            newP.Y <= newB.Y + heightOff && 
+            newP.Y >= newB.Y - heightOff
+
         override this.Intersect (ray:Ray) =
             let numerator = -this.Plane.D - Plane.DotNormal(this.Plane,ray.Origin) 
             let denominator = Plane.DotNormal(this.Plane,ray.Direction)
@@ -98,8 +119,8 @@ type Plane(plane : System.Numerics.Plane, topLeft : Point option, width : float3
         // dotView factor ensures sampling "straight" at very large distances due to fov
         override this.IntersectionAcceptable hasIntersection t dotViewTrace pointOnSurface =
             let generalIntersection = hasIntersection && t > this.TMin && t <= (this.TMax/dotViewTrace)
-            match this.TopLeft with
-                | Some topLeft -> generalIntersection
+            match this.Center with
+                | Some _ -> generalIntersection && this.PointLiesInRectangle pointOnSurface
                 | None -> generalIntersection
         override this.NormalForSurfacePoint _ =
             this.Normal

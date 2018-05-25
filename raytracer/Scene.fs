@@ -1,5 +1,4 @@
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
-
 module Raytracer.Scene
 
 open SixLabors.ImageSharp
@@ -18,7 +17,7 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 100
+    let samples = 1
 
     let backgroundColor = Vector3.Zero
 
@@ -42,8 +41,10 @@ type Scene () =
 
     let lights : Surface list 
         =  [
-            Emitting(assignIDAndIncrement id, Sphere(Vector3(3.0f, 8.0f, -5.0f),3.0f), Material(Vector3(1.0f,1.0f,1.0f)))
-            Emitting(assignIDAndIncrement id, Sphere(Vector3(-4.0f, 8.0f, -10.0f),3.0f), Material(Vector3(1.0f,1.0f,1.0f)))
+            //Emitting(assignIDAndIncrement id, Sphere(Vector3(3.0f, 8.0f, -5.0f),3.0f), Material(Vector3(1.0f,1.0f,1.0f)));
+            // Emitting(assignIDAndIncrement id, Sphere(Vector3(-4.0f, 8.0f, -10.0f),3.0f), Material(Vector3(1.0f,1.0f,1.0f)));
+            Emitting(assignIDAndIncrement id, Plane(new System.Numerics.Plane((SurfaceNormal -1.0f -1.0f 1.0f),10.0f),Some ((SurfaceNormal -1.0f -1.0f 1.0f)*(-10.0f)),Some 5.0f,Some 5.0f), Material(Vector3(1.0f,1.0f,1.0f)))
+            // Emitting(assignIDAndIncrement id, Plane(new System.Numerics.Plane((SurfaceNormal -1.0f -1.0f 1.0f),10.0f),Some ((Vector3(10.0f,10.0f,0.0f))),Some 2.0f,Some 2.0f), Material(Vector3(1.0f,1.0f,1.0f)))
         ]
 
     let spheres : Surface list
@@ -54,11 +55,11 @@ type Scene () =
           ]
     // let spheres = []
 
-    let planes : Surface list = [Lambertian(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)),None,None,None),Material(Vector3(1.0f,1.0f,1.0f)))]
+    let planes : Surface list = [Lambertian(assignIDAndIncrement id,Plane(System.Numerics.Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)),None,None,None),Material(Vector3(1.0f,1.0f,1.0f)))]
     //let planes = []
     let surfaces : (Surface list) = List.concat [spheres;planes;lights]
 
-    let cameraOriginWS = Vector3(-1.0f,6.0f,10.0f)
+    let cameraOriginWS = Vector3(-1.0f,6.0f,50.0f)
     let lookAt = Vector3(0.0f,1.0f,-10.0f)
     let viewMatrix = WorldToCamera cameraOriginWS lookAt Vector3.UnitY
 
