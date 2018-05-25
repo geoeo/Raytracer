@@ -17,9 +17,9 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 1
+    let samples = 100
 
-    let backgroundColor = Vector3.One
+    let backgroundColor = Vector3.Zero
 
     // let frameBuffer = Array2D.create width height defaultColor
     let frameBuffer = Array2D.create width height Vector4.Zero
@@ -37,23 +37,29 @@ type Scene () =
         id <- id + 1UL
         toBeAssigned
 
-    let spheres 
+        // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
+    let lightWS = Vector3(3.0f, 7.0f, -5.0f)
+    let lightSphere = Sphere(lightWS,3.0f)
+
+    let lights : Surface list 
+        =  [
+            Emitting(assignIDAndIncrement id, lightSphere, Material(Vector3(1.0f,1.0f,1.0f)))
+        ]
+
+    let spheres : Surface list
         = [
-            Lambertian(assignIDAndIncrement id,Sphere(Vector3(3.0f,0.0f,-14.0f),2.0f), Material(Vector3(0.0f,1.0f,0.0f)));
-            Lambertian(assignIDAndIncrement id,Sphere(Vector3(-3.0f,0.0f,-20.0f),5.0f),Material(Vector3(1.0f,0.0f,0.0f)))
+            Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,0.0f,-14.0f),2.0f), Material(Vector3(0.0f,1.0f,0.0f)));
+            // Lambertian(assignIDAndIncrement id,Sphere(Vector3(-1.5f,0.0f,-14.0f),2.0f),Material(Vector3(0.0f,0.0f,1.0f)))
+            Lambertian(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Vector3(0.0f,0.0f,1.0f)))
           ]
     // let spheres = []
 
-    let planes = [Lambertian(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))),Material(Vector3(1.0f,1.0f,1.0f)))]
+    let planes : Surface list = [Lambertian(assignIDAndIncrement id,Plane(Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f))),Material(Vector3(1.0f,1.0f,1.0f)))]
     //let planes = []
-    let surfaces : (Surface list) = List.concat [List.map ToSurface spheres;List.map ToSurface planes]
+    let surfaces : (Surface list) = List.concat [spheres;planes;lights]
 
     let cameraOriginWS = Vector3(-1.0f,6.0f,10.0f)
     let lookAt = Vector3(0.0f,1.0f,-10.0f)
-
-    // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
-    let lightWS = Vector3(100.0f, 100.0f, 100.0f)
-    let lightSphere = Sphere(lightWS,100.0f)
     let viewMatrix = worldToCamera cameraOriginWS lookAt Vector3.UnitY
 
     let cameraWS = cameraToWorld viewMatrix 
@@ -85,37 +91,42 @@ type Scene () =
 
 
     //TODO: check how rays are composed. If the last ray cotributes, all rays should
-    let updateContributions doesRayContribute (shading:Color) contributions =
+    let updateContributions doesRayContribute (emitted:Color) (scattered:Color) contributions =
         match  doesRayContribute with   
-            | true -> (shading :: contributions) 
-            | false -> (contributions)
+            | true -> ((emitted + scattered) :: contributions) 
+            | false -> (emitted :: contributions)
 
-    let rec rayTrace (ray : Ray) (contributions : Raytracer.Material.Color list) previousTraceDepth =
+    let rec rayTrace (ray : Ray) previousTraceDepth =
         if previousTraceDepth > maxTraceDepth 
         then  
-            contributions
+            backgroundColor
         else
             let newTraceDepth = previousTraceDepth + 1us
             let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
             let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
             let surfaceGeometry : Hitable = surface.Geometry
-            if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay 
+            if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f 
             then
-                let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
-                let (doesRayContribute,outRay,shading) = surface.Scatter ray t lightSphere allOtherGeometries ((int)newTraceDepth)
-                (rayTrace outRay (updateContributions doesRayContribute shading contributions) newTraceDepth)
+                let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t ((int)newTraceDepth)
+                let emittedShading = surface.Emitted
+                match doesRayContribute with
+                    | true -> emittedShading + scatteredShading*(rayTrace outRay newTraceDepth)
+                    | false -> emittedShading
             else 
-               contributions
+               backgroundColor
 
     let rayTraceBase (ray : Ray) px py writeToDepth = 
         let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
-        let (realSolution,t,surface) = findClosestIntersection ray surfaces
+        let allOtherSurfaces = (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
+        let (realSolution,t,surface) = findClosestIntersection ray allOtherSurfaces
         let surfaceGeometry = surface.Geometry
         if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay then
-            let allOtherGeometries = SurfacesToGeometry (AllSurfacesWithoutId surfaces surface.ID)
-            let (doesRayContribute,outRay,shading) = surface.Scatter ray t lightSphere allOtherGeometries 1
+            let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t 0
             if writeToDepth then writeToDepthBuffer t px py
-            composeContributions(updateContributions doesRayContribute shading (rayTrace outRay [] 1us))
+            let emittedShading = surface.Emitted
+            match doesRayContribute with
+                | true -> emittedShading + scatteredShading*(rayTrace outRay 1us)
+                | false -> emittedShading
         else
             backgroundColor
 

@@ -18,7 +18,7 @@ type Ray =
         val Direction : Vector3
         val SurfaceOrigin : uint64
 
-        new(origin, dir) = { Origin = origin; Direction = normalized(dir);SurfaceOrigin = (uint64)0 }
+        new(origin, dir) = { Origin = origin; Direction = normalized(dir);SurfaceOrigin = 0UL }
         new(origin, dir, id) = { Origin = origin; Direction = normalized(dir);SurfaceOrigin = id }
 
     end
@@ -49,6 +49,7 @@ let IsIntersectionInfrontOf (geometry : Hitable) (ray : Ray) (tCompare : LinePar
 
 
 type NotHitable() = inherit Hitable ()
+
 type Sphere(sphereCenter : Origin,radius : Radius) =
     inherit Hitable () with
 
@@ -77,10 +78,10 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
             let (hasIntersection,_,_) = this.Intersections ray 
             hasIntersection
         override this.IntersectionAcceptable hasIntersection t _ =
-            hasIntersection && t > (this :> Hitable).TMin
+            hasIntersection && t > this.TMin
         override this.IsObstructedBySelf ray =
             let (b,i1,i2) = this.Intersections ray
-            (this :> Hitable).IntersectionAcceptable b (MathF.Max(i1,i2)) 1.0f
+            this.IntersectionAcceptable b (MathF.Max(i1,i2)) 1.0f
 
 
 //TODO enforce boundaries so that it is no longer infinite
@@ -92,14 +93,14 @@ type Plane(plane : System.Numerics.Plane) =
         override this.Intersect (ray:Ray) =
             let numerator = -this.Plane.D - Plane.DotNormal(this.Plane,ray.Origin) 
             let denominator = Plane.DotNormal(this.Plane,ray.Direction)
-            if Math.Abs(round denominator 2) < 0.01f  then (false, 0.0f)
+            if Math.Abs(round denominator 5) < 0.00001f  then (false, 0.0f)
             else (true, numerator / denominator)
         override this.HasIntersection (ray:Ray) = 
-            let (hasIntersection,_) = (this :> Hitable).Intersect ray 
+            let (hasIntersection,_) = this.Intersect ray 
             hasIntersection
         // dotView factor ensures sampling "straight" at very large distances due to fov
         override this.IntersectionAcceptable hasIntersection t dotViewTrace =
-            hasIntersection && t > (this :> Hitable).TMin && t <= ((this :> Hitable).TMax/dotViewTrace)
+            hasIntersection && t > this.TMin && t <= (this.TMax/dotViewTrace)
         override this.NormalForSurfacePoint _ =
             this.Normal
 
