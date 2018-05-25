@@ -38,19 +38,18 @@ type Scene () =
         toBeAssigned
 
         // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
-    let lightWS = Vector3(3.0f, 7.0f, -5.0f)
-    let lightSphere = Sphere(lightWS,3.0f)
 
     let lights : Surface list 
         =  [
-            Emitting(assignIDAndIncrement id, lightSphere, Material(Vector3(1.0f,1.0f,1.0f)))
+            Emitting(assignIDAndIncrement id, Sphere(Vector3(3.0f, 8.0f, -5.0f),3.0f), Material(Vector3(1.0f,1.0f,1.0f)))
+            Emitting(assignIDAndIncrement id, Sphere(Vector3(-4.0f, 8.0f, -10.0f),3.0f), Material(Vector3(1.0f,1.0f,1.0f)))
         ]
 
     let spheres : Surface list
         = [
             Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,0.0f,-14.0f),2.0f), Material(Vector3(0.0f,1.0f,0.0f)));
             // Lambertian(assignIDAndIncrement id,Sphere(Vector3(-1.5f,0.0f,-14.0f),2.0f),Material(Vector3(0.0f,0.0f,1.0f)))
-            Lambertian(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Vector3(0.0f,0.0f,1.0f)))
+            Metal(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Vector3(0.0f,0.0f,1.0f)),0.5f)
           ]
     // let spheres = []
 

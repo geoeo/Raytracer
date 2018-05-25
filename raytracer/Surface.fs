@@ -77,23 +77,25 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
 
 
 
-type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
+type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, fuzz : float32) =
     inherit Surface(id,geometry,material)
 
+    member this.Fuzz = MathF.Max(MathF.Min(1.0f,fuzz),0.0f)
     member this.Reflect (incommingRay : Ray) (normalToSurface : Normal) 
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
 
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
- 
+
+        let randomInt = randomState.Next()
+        let randomUnsingedInt : uint32 = (uint32) randomInt
+        let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
-        let normal = geometry.NormalForSurfacePoint positionOnSurface
+        let normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface + this.Fuzz*rand_norm)
 
         let outDir = Vector3.Normalize(this.Reflect incommingRay normal)
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    
-        let isObstructedBySelf = (geometry.IsObstructedBySelf outRay)
-        // let doesRayContribute 
-            // = (light.IntersectionAcceptable b t 1.0f) && (DoesRayTransportLight allOtherGeometries outRay light) && (not isObstructedBySelf)
+        let isObstructedBySelf = (this.Geometry.IsObstructedBySelf outRay)
         let doesRayContribute = (not isObstructedBySelf)
         let light = material.Color
         // let lightDepthAdjusted = applyFuncToVector3 (power (1.0f/(float32)depthLevel) ) light
