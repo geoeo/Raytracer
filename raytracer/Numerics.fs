@@ -15,7 +15,7 @@ let NormalizedOrFail(value : Vector3) =
 let RoundVec3 (vec3:Vector3) (digits:int) =
     Vector3(Round vec3.X digits, Round vec3.Y digits, Round vec3.Z digits)
 
-let ToVec3 (vec4:Vector4) =
+let ToVec3 (vec4 : Vector4) =
     Vector3(vec4.X,vec4.Y,vec4.Z)
 
 let ToHomogeneous (v : Vector3) (c : float32) = Vector4(v,c)

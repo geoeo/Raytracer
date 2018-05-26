@@ -15,8 +15,8 @@ open BenchmarkDotNet.Attributes
 
 type Scene () =
 
-    let width = 640
-    let height = 480
+    let width = 800
+    let height = 600
     let samples = 1
 
     let backgroundColor = Vector3.Zero
@@ -43,15 +43,17 @@ type Scene () =
         =  [
             //Emitting(assignIDAndIncrement id, Sphere(Vector3(3.0f, 8.0f, -5.0f),3.0f), Material(Vector3(1.0f,1.0f,1.0f)));
             // Emitting(assignIDAndIncrement id, Sphere(Vector3(-4.0f, 8.0f, -10.0f),3.0f), Material(Vector3(1.0f,1.0f,1.0f)));
-            Emitting(assignIDAndIncrement id, Plane(new System.Numerics.Plane((SurfaceNormal -1.0f -1.0f 1.0f),10.0f),Some ((SurfaceNormal -1.0f -1.0f 1.0f)*(-10.0f)),Some 5.0f,Some 5.0f), Material(Vector3(1.0f,1.0f,1.0f)))
-            // Emitting(assignIDAndIncrement id, Plane(new System.Numerics.Plane((SurfaceNormal -1.0f -1.0f 1.0f),10.0f),Some ((Vector3(10.0f,10.0f,0.0f))),Some 2.0f,Some 2.0f), Material(Vector3(1.0f,1.0f,1.0f)))
+            Emitting(assignIDAndIncrement id, Plane(new System.Numerics.Plane((SurfaceNormal -1.0f -1.0f 1.0f),20.0f),Some ((SurfaceNormal -1.0f -1.0f 1.0f)*(-20.0f)),Some 40.0f,Some 20.0f), Material(Rgba32.White))
+            Emitting(assignIDAndIncrement id, Plane(new System.Numerics.Plane((SurfaceNormal 1.0f 0.0f 0.0f),10.0f),Some ((Vector3(-10.0f,5.0f,-10.0f))),Some 10.0f,Some 10.0f), Material(Rgba32.White))
         ]
 
     let spheres : Surface list
         = [
-            Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,0.0f,-14.0f),2.0f), Material(Vector3(0.0f,1.0f,0.0f)));
+            Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,0.0f,-14.0f),2.0f), Material(Rgba32.Green));
+            Lambertian(assignIDAndIncrement id,Sphere(Vector3(0.5f,-2.0f,-7.0f),0.8f), Material(Rgba32.LemonChiffon));
             // Lambertian(assignIDAndIncrement id,Sphere(Vector3(-1.5f,0.0f,-14.0f),2.0f),Material(Vector3(0.0f,0.0f,1.0f)))
-            Metal(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Vector3(0.0f,0.0f,1.0f)),0.5f)
+            Metal(assignIDAndIncrement id,Sphere(Vector3(-6.0f,-0.5f,-6.0f),1.0f), Material(Rgba32.White),0.0f);
+            Metal(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-20.0f),5.0f),Material(Rgba32.RoyalBlue),0.5f)
           ]
     // let spheres = []
 
@@ -59,8 +61,9 @@ type Scene () =
     //let planes = []
     let surfaces : (Surface list) = List.concat [spheres;planes;lights]
 
-    let cameraOriginWS = Vector3(-1.0f,6.0f,50.0f)
-    let lookAt = Vector3(0.0f,1.0f,-10.0f)
+    let cameraOriginWS = Vector3(-3.0f,6.0f,15.0f)
+    let lookAt = Vector3(-1.0f,1.0f,-10.0f)
+
     let viewMatrix = WorldToCamera cameraOriginWS lookAt Vector3.UnitY
 
     let cameraWS = CameraToWorld viewMatrix 

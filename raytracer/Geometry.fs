@@ -3,8 +3,6 @@ module Raytracer.Geometry
 open System
 open System.Numerics
 open Raytracer.Numerics
-open Assimp
-open ImGuiNET
 
 type Origin = Vector3 // Position of a point in 3D space
 type Direction = Vector3  
