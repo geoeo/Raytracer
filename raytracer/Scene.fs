@@ -141,10 +141,10 @@ type Scene () =
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
         let randVec = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
-        let xOff = MathF.Abs(randVec.X)/((float32)(width))
-        let yOff = MathF.Abs(randVec.Y)/((float32)(height))
-        // let xOff = MathF.Abs(randVec.X)/(0.5f)
-        // let yOff = MathF.Abs(randVec.Y)/(0.5f)
+        let xOff = randVec.X/((float32)(width))
+        let yOff = randVec.Y/((float32)(height))
+        // let xOff = randVec.X/2.0f
+        // let yOff = randVec.Y/2.0f
         ((float32)px + xOff, (float32)py+yOff)
 
     [<Benchmark>]
