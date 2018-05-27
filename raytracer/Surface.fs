@@ -21,7 +21,7 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
     member this.Geometry = geometry
     member this.Material = material
     default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),Vector3.UnitY)
-    default this.Emitted = Vector3.Zero
+    default this.Emitted = this.Material.Emmitance
 
 //let ToSurface x = upcast x : Surface
 
@@ -39,9 +39,9 @@ let findClosestIntersection (ray : Ray) (surfaces : Surface list) =
             | realSolutions -> List.reduce (fun smallest current -> smallestIntersection smallest current) realSolutions
     closestIntersection
 
-type Emitting(id: ID, geometry : Hitable, material : Raytracer.Material.Material)  =
-    inherit Surface(id,geometry,material) with 
-        override this.Emitted = this.Material.Color
+// type Emitting(id: ID, geometry : Hitable, material : Raytracer.Material.Material)  =
+//     inherit Surface(id,geometry,material) with 
+//         override this.Emitted = this.Material.Albedo
 
 type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id,geometry,material)
@@ -59,10 +59,10 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
         let doesRayContribute = not (geometry.IsObstructedBySelf outRay)
-        let light = this.Material.Color
+        let attenuation = this.Material.Albedo
         // let light = normal
-        let lightDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*light
-        (doesRayContribute,outRay,lightDepthAdjusted)
+        let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
+        (doesRayContribute,outRay,attenuationDepthAdjusted)
 
 
 
@@ -86,10 +86,30 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    
         let isObstructedBySelf = (this.Geometry.IsObstructedBySelf outRay)
         let doesRayContribute = (not isObstructedBySelf)
-        let light = material.Color
+        let attenuation = material.Albedo
         // let lightDepthAdjusted = applyFuncToVector3 (power (1.0f/(float32)depthLevel) ) light
-        let lightDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*light
-        (doesRayContribute,outRay,lightDepthAdjusted)
+        let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
+        (doesRayContribute,outRay,attenuationDepthAdjusted)
+
+type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Material, refractiveIndex : float32) =
+    inherit Surface(id,geometry,material)
+
+    member this.RefractiveIndex = refractiveIndex
+
+    //TODO: finish this
+    override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
+        let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
+        let normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface)
+        let refrativeIndexAir = 1.0f
+        // transmition over incidence
+        let (refractiveIndexRatio,fresnelNormal)
+            = if Vector3.Dot(incommingRay.Direction,normal) > 0.0f then 
+                refrativeIndexAir/this.RefractiveIndex, -normal
+              else this.RefractiveIndex , normal
+        let attenuation = material.Albedo
+        let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
+        (false,incommingRay,attenuationDepthAdjusted)
+
 
 
 //https://learnopengl.com/Lighting/Light-casters
