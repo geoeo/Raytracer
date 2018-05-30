@@ -96,16 +96,20 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
 
     member this.RefractiveIndex = refractiveIndex
 
+    member this.Reflect (incommingRay : Ray) (normalToSurface : Normal) 
+        = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
+
     //TODO: finish this
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
         let normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface)
         let refrativeIndexAir = 1.0f
-        // transmition over incidence
+        //incidence over transmition
         let (refractiveIndexRatio,fresnelNormal)
+            // Vector is "comming out" of material into air
             = if Vector3.Dot(incommingRay.Direction,normal) > 0.0f then 
-                refrativeIndexAir/this.RefractiveIndex, -normal
-              else this.RefractiveIndex , normal
+                this.RefractiveIndex, -normal
+              else refrativeIndexAir/this.RefractiveIndex , normal
         let attenuation = material.Albedo
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
         (false,incommingRay,attenuationDepthAdjusted)
