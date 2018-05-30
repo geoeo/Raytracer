@@ -57,16 +57,16 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
         member this.IntersectWith (t : LineParameter) (ray : Ray) =
             ((ray.Origin + t*ray.Direction) - this.Center).Length() <= this.Radius
 
-        //TODO: Bug in this calculation
         member this.Intersections (ray : Ray) = 
+            let A = Vector3.Dot(ray.Direction,ray.Direction)
             let centerToRay = ray.Origin - this.Center
-            let dirDotCenterToRay = Vector3.Dot(ray.Direction ,centerToRay)
-            let discriminant = 
-                MathF.Pow(dirDotCenterToRay, 2.0f) - centerToRay.LengthSquared() + this.Radius**2.0f
+            let B = 2.0f*Vector3.Dot(ray.Direction,centerToRay)
+            let C = Vector3.Dot(centerToRay,centerToRay)-this.Radius**2.0f
+            let discriminant = B**2.0f - 4.0f*A*C
             if Round discriminant 5 < 0.0f then (false, 0.0f,0.0f)
             // TODO: may cause alsiasing investigate around sphere edges
-            else if Round discriminant 5 = 0.0f then (true,-dirDotCenterToRay,System.Single.MinValue)
-            else (true,-dirDotCenterToRay + MathF.Sqrt(discriminant),-dirDotCenterToRay - MathF.Sqrt(discriminant))
+            else if Round discriminant 5 = 0.0f then (true,-B/(2.0f*A),System.Single.MinValue)
+            else (true,(-B + MathF.Sqrt(discriminant)/(2.0f*A)),((-B - MathF.Sqrt(discriminant))/(2.0f*A)))
 
         override this.Intersect (ray : Ray) = 
             let (hasIntersection,i1,i2) = this.Intersections (ray : Ray)
