@@ -57,6 +57,7 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
         member this.IntersectWith (t : LineParameter) (ray : Ray) =
             ((ray.Origin + t*ray.Direction) - this.Center).Length() <= this.Radius
 
+        //TODO: Bug in this calculation
         member this.Intersections (ray : Ray) = 
             let centerToRay = ray.Origin - this.Center
             let dirDotCenterToRay = Vector3.Dot(ray.Direction ,centerToRay)
