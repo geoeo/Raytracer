@@ -91,6 +91,7 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
         (doesRayContribute,outRay,attenuationDepthAdjusted)
 
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
 type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Material, refractiveIndex : float32) =
     inherit Surface(id,geometry,material)
 
@@ -98,21 +99,51 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
 
     member this.Reflect (incommingRay : Ray) (normalToSurface : Normal) 
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
+    member this.Refract (incommingDirection : Direction) (normalToSurface : Normal) (refractiveIncidenceOverTransmission : float32) =
+        let dotDirectionNormal =  Vector3.Dot(-incommingDirection,normalToSurface)
+        let discriminant = 1.0f - (refractiveIncidenceOverTransmission**2.0f)*(1.0f - dotDirectionNormal**2.0f)
+        if discriminant > 0.0f then 
+            let refracted = refractiveIncidenceOverTransmission*(incommingDirection + dotDirectionNormal*normalToSurface) - normalToSurface*MathF.Sqrt(discriminant)
+            (true, Vector3.Normalize(refracted))
+        // total internal refleciton
+        else (false, Vector3.Zero) 
 
     //TODO: finish this
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
+        let randomInt = randomState.Next()
+        let randomUnsingedInt : uint32 = (uint32) randomInt
+        let randomFloat = RandomSampling.RandomFloat(ref randomUnsingedInt)
+
+        let attenuation = material.Albedo
+        let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
+
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
         let normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface)
+        let reflectDir = Vector3.Normalize(this.Reflect incommingRay normal)
         let refrativeIndexAir = 1.0f
+
         //incidence over transmition
         let (refractiveIndexRatio,fresnelNormal)
             // Vector is "comming out" of material into air
             = if Vector3.Dot(incommingRay.Direction,normal) > 0.0f then 
                 this.RefractiveIndex, -normal
               else refrativeIndexAir/this.RefractiveIndex , normal
-        let attenuation = material.Albedo
-        let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
-        (false,incommingRay,attenuationDepthAdjusted)
+        let (refracted,refrationDir) = this.Refract incommingRay.Direction fresnelNormal refractiveIndexRatio
+        //TODO: Use schlick if refraction was successful
+        let reflectProb = if refracted then 1.0f else 1.0f
+
+        // let ourRayRefract = Ray(positionOnSurface,refrationDir)
+        if randomFloat < reflectProb 
+        then 
+            let reflectRay = Ray(positionOnSurface,reflectDir)
+            let isObstructedBySelf = (this.Geometry.IsObstructedBySelf reflectRay)
+            let doesRayContribute = (not isObstructedBySelf)
+            (doesRayContribute,reflectRay,attenuationDepthAdjusted)
+        else // refraction has to have been successful
+            let refractRay = Ray(positionOnSurface,refrationDir)
+            let isObstructedBySelf = (this.Geometry.IsObstructedBySelf refractRay)
+            let doesRayContribute = (not isObstructedBySelf)
+            (doesRayContribute,refractRay,attenuationDepthAdjusted)
 
 
 
