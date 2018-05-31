@@ -3,11 +3,10 @@ module Raytracer.Surface
 open System
 open System.Numerics
 open Raytracer.Geometry
-open Raytracer.Material
+//open Raytracer.Material
 open Henzai.Sampling
 open Raytracer.Numerics
 open Raytracer
-open Henzai.Geometry
 
 type ID = uint64
 
@@ -39,10 +38,6 @@ let findClosestIntersection (ray : Ray) (surfaces : Surface list) =
             | realSolutions -> List.reduce (fun smallest current -> smallestIntersection smallest current) realSolutions
     closestIntersection
 
-// type Emitting(id: ID, geometry : Hitable, material : Raytracer.Material.Material)  =
-//     inherit Surface(id,geometry,material) with 
-//         override this.Emitted = this.Material.Albedo
-
 type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id,geometry,material)
 
@@ -60,7 +55,6 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let outRay = Ray(positionOnSurface,outDir,this.ID)
         // let doesRayContribute = not (geometry.IsObstructedBySelf outRay)
         let attenuation = this.Material.Albedo
-        // let light = normal
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
         (true,outRay,attenuationDepthAdjusted)
 
@@ -112,6 +106,7 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         // total internal refleciton
         else (false, Vector3.Zero) 
 
+    //TODO: investigate refraction artefacts
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
@@ -138,7 +133,6 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         //Use schlick if refraction was successful
         let reflectProb = if refracted then this.SchlickApprx cos_incidence incidenceIndex transmissionIndex  else 1.0f
 
-        // let ourRayRefract = Ray(positionOnSurface,refrationDir)
         if randomFloat <= reflectProb 
         then 
             let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)

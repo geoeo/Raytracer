@@ -38,7 +38,7 @@ type Hitable ()  =
     abstract member TMax : float32
 
     // effects shadow acne
-    default this.TMin = 0.00001f
+    default this.TMin = 0.0001f
     default this.TMax = 500.0f
     default this.HasIntersection _ = false
     default this.Intersect _ = (false, 0.0f)
@@ -65,7 +65,7 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
             let B = 2.0f*Vector3.Dot(ray.Direction,centerToRay)
             let C = Vector3.Dot(centerToRay,centerToRay)-this.Radius**2.0f
             let discriminant = B**2.0f - 4.0f*C
-            if Round discriminant 6 < 0.0f then (false, 0.0f,0.0f)
+            if discriminant < 0.0f then (false, 0.0f,0.0f)
             // TODO: may cause alsiasing investigate around sphere edges
             else if Round discriminant 6 = 0.0f then (true,-B/(2.0f),System.Single.MinValue)
             else (true,(-B + MathF.Sqrt(discriminant)/(2.0f)),((-B - MathF.Sqrt(discriminant))/(2.0f)))
@@ -84,7 +84,7 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
             let (hasIntersection,_,_) = this.Intersections ray 
             hasIntersection
         override this.IntersectionAcceptable hasIntersection t _ _ =
-            hasIntersection && Round t 6 > this.TMin
+            hasIntersection && t > this.TMin
         override this.IsObstructedBySelf ray =
             let (b,i1,i2) = this.Intersections ray
             this.IntersectionAcceptable b (MathF.Max(i1,i2)) 1.0f Vector3.Zero
@@ -117,15 +117,14 @@ type Plane(plane : System.Numerics.Plane, center : Point option, width : float32
         override this.Intersect (ray:Ray) =
             let numerator = -this.Plane.D - Plane.DotNormal(this.Plane,ray.Origin) 
             let denominator = Plane.DotNormal(this.Plane,ray.Direction)
-            // has to be less than rounding or else artefacts will apear on planes
-            if Math.Abs(Round denominator 6) < this.TMin then (false, 0.0f)
+            if Math.Abs(denominator) < this.TMin then (false, 0.0f)
             else (true, numerator / denominator)
         override this.HasIntersection (ray:Ray) = 
             let (hasIntersection,_) = this.Intersect ray 
             hasIntersection
         // dotView factor ensures sampling "straight" at very large distances due to fov
         override this.IntersectionAcceptable hasIntersection t dotViewTrace pointOnSurface =
-            let generalIntersection = hasIntersection && Round t 6 > this.TMin && t <= (this.TMax/dotViewTrace)
+            let generalIntersection = hasIntersection && t > this.TMin && t <= (this.TMax/dotViewTrace)
             match this.Center with
                 | Some _ -> generalIntersection && this.PointLiesInRectangle pointOnSurface
                 | None -> generalIntersection
@@ -137,7 +136,7 @@ type Plane(plane : System.Numerics.Plane, center : Point option, width : float32
 /// Does the ray penetrating the surface have a t < tCompare
 let IsIntersectionInfrontOf (geometry : Hitable) (ray : Ray) (tCompare : LineParameter) = 
         let (hasIntersections,t) = geometry.Intersect ray
-        if hasIntersections && Round t 6 > geometry.TMin then t < tCompare else false
+        if hasIntersections && t > geometry.TMin then t < tCompare else false
 
 let ParameterToPointForRay (ray : Ray) (point : Point) =
     if ray.Direction.X = 0.0f then (point.Y - ray.Origin.Y)/ray.Direction.Y
