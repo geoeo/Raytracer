@@ -58,19 +58,24 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
             ((ray.Origin + t*ray.Direction) - this.Center).Length() <= this.Radius
 
         member this.Intersections (ray : Ray) = 
-            let A = Vector3.Dot(ray.Direction,ray.Direction)
+            //A is always one
             let centerToRay = ray.Origin - this.Center
             let B = 2.0f*Vector3.Dot(ray.Direction,centerToRay)
             let C = Vector3.Dot(centerToRay,centerToRay)-this.Radius**2.0f
-            let discriminant = B**2.0f - 4.0f*A*C
+            let discriminant = B**2.0f - 4.0f*C
             if Round discriminant 5 < 0.0f then (false, 0.0f,0.0f)
             // TODO: may cause alsiasing investigate around sphere edges
-            else if Round discriminant 5 = 0.0f then (true,-B/(2.0f*A),System.Single.MinValue)
-            else (true,(-B + MathF.Sqrt(discriminant)/(2.0f*A)),((-B - MathF.Sqrt(discriminant))/(2.0f*A)))
+            else if Round discriminant 5 = 0.0f then (true,-B/(2.0f),System.Single.MinValue)
+            else (true,(-B + MathF.Sqrt(discriminant)/(2.0f)),((-B - MathF.Sqrt(discriminant))/(2.0f)))
 
         override this.Intersect (ray : Ray) = 
             let (hasIntersection,i1,i2) = this.Intersections (ray : Ray)
-            (hasIntersection,MathF.Min(i1,i2))
+            if i1 >= 0.0f && i2 >= 0.0f then
+                (hasIntersection,MathF.Min(i1,i2))
+            else if i1 < 0.0f then
+                (hasIntersection,i2)
+            else
+                (hasIntersection,i1)
         override this.NormalForSurfacePoint (positionOnSphere:Point) =
             Vector3.Normalize(positionOnSphere - this.Center)
         override this.HasIntersection ray =

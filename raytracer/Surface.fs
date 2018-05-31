@@ -58,11 +58,11 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let outDir = Vector3.Normalize(normal+rand_norm)
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
-        let doesRayContribute = not (geometry.IsObstructedBySelf outRay)
+        // let doesRayContribute = not (geometry.IsObstructedBySelf outRay)
         let attenuation = this.Material.Albedo
         // let light = normal
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
-        (doesRayContribute,outRay,attenuationDepthAdjusted)
+        (true,outRay,attenuationDepthAdjusted)
 
 
 
@@ -84,12 +84,11 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
 
         let outDir = Vector3.Normalize(this.Reflect incommingRay normal)
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    
-        let isObstructedBySelf = (this.Geometry.IsObstructedBySelf outRay)
-        let doesRayContribute = (not isObstructedBySelf)
+        // let isObstructedBySelf = (this.Geometry.IsObstructedBySelf outRay)
+        // let doesRayContribute = (not isObstructedBySelf)
         let attenuation = material.Albedo
-        // let lightDepthAdjusted = applyFuncToVector3 (power (1.0f/(float32)depthLevel) ) light
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
-        (doesRayContribute,outRay,attenuationDepthAdjusted)
+        (true,outRay,attenuationDepthAdjusted)
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
 type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Material, refractiveIndex : float32) =
@@ -97,18 +96,22 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
 
     member this.RefractiveIndex = refractiveIndex
 
+    //https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
+    member this.SchlickApprx (cos_incidence : float32) (refractiveIncidenceFactor : float32) (refractiveTransmissionFactor : float32) =
+        let R0 = MathF.Pow((refractiveTransmissionFactor-refractiveIncidenceFactor)/(refractiveTransmissionFactor+refractiveIncidenceFactor),2.0f)
+        R0 + (1.0f - R0)*MathF.Pow((1.0f - cos_incidence),5.0f)
+
     member this.Reflect (incommingRay : Ray) (normalToSurface : Normal) 
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
-    member this.Refract (incommingDirection : Direction) (normalToSurface : Normal) (refractiveIncidenceOverTransmission : float32) =
-        let dotDirectionNormal =  Vector3.Dot(-incommingDirection,normalToSurface)
-        let discriminant = 1.0f - (refractiveIncidenceOverTransmission**2.0f)*(1.0f - dotDirectionNormal**2.0f)
+
+    member this.Refract (incommingDirection : Direction) (normalToSurface : Normal) (refractiveIncidenceOverTransmission : float32) (cos_incidence : float32) =
+        let discriminant = 1.0f - (refractiveIncidenceOverTransmission**2.0f)*(1.0f - cos_incidence**2.0f)
         if discriminant > 0.0f then 
-            let refracted = refractiveIncidenceOverTransmission*(incommingDirection + dotDirectionNormal*normalToSurface) - normalToSurface*MathF.Sqrt(discriminant)
+            let refracted = refractiveIncidenceOverTransmission*(incommingDirection + cos_incidence*normalToSurface) - normalToSurface*MathF.Sqrt(discriminant)
             (true, Vector3.Normalize(refracted))
         // total internal refleciton
         else (false, Vector3.Zero) 
 
-    //TODO: finish this
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
@@ -123,27 +126,30 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let refrativeIndexAir = 1.0f
 
         //incidence over transmition
-        let (refractiveIndexRatio,fresnelNormal)
+        let (incidenceIndex, transmissionIndex,fresnelNormal)
             // Vector is "comming out" of material into air
-            = if Vector3.Dot(incommingRay.Direction,normal) > 0.0f then 
-                this.RefractiveIndex, -normal
-              else refrativeIndexAir/this.RefractiveIndex , normal
-        let (refracted,refrationDir) = this.Refract incommingRay.Direction fresnelNormal refractiveIndexRatio
-        //TODO: Use schlick if refraction was successful
-        let reflectProb = if refracted then 1.0f else 1.0f
+            = if Vector3.Dot(incommingRay.Direction,normal) > 0.0f 
+              then 
+                this.RefractiveIndex,refrativeIndexAir, -normal
+              else 
+                refrativeIndexAir, this.RefractiveIndex , normal
+        let cos_incidence =  Vector3.Dot(incommingRay.Direction,-fresnelNormal)
+        let (refracted,refrationDir) = this.Refract incommingRay.Direction fresnelNormal (incidenceIndex/transmissionIndex) cos_incidence
+        //Use schlick if refraction was successful
+        let reflectProb = if refracted then this.SchlickApprx cos_incidence incidenceIndex transmissionIndex  else 1.0f
 
         // let ourRayRefract = Ray(positionOnSurface,refrationDir)
-        if randomFloat < reflectProb 
+        if randomFloat <= reflectProb 
         then 
-            let reflectRay = Ray(positionOnSurface,reflectDir)
-            let isObstructedBySelf = (this.Geometry.IsObstructedBySelf reflectRay)
-            let doesRayContribute = (not isObstructedBySelf)
-            (doesRayContribute,reflectRay,attenuationDepthAdjusted)
+            let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)
+            // let isObstructedBySelf = (this.Geometry.IsObstructedBySelf reflectRay)
+            // let doesRayContribute = (not isObstructedBySelf)
+            (true,reflectRay,attenuationDepthAdjusted)
         else // refraction has to have been successful
             let refractRay = Ray(positionOnSurface,refrationDir)
-            let isObstructedBySelf = (this.Geometry.IsObstructedBySelf refractRay)
-            let doesRayContribute = (not isObstructedBySelf)
-            (doesRayContribute,refractRay,attenuationDepthAdjusted)
+            //let isObstructedBySelf = (this.Geometry.IsObstructedBySelf refractRay)
+            //let doesRayContribute = (not isObstructedBySelf)
+            (true,refractRay,attenuationDepthAdjusted)
 
 
 

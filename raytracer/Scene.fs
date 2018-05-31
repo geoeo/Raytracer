@@ -17,7 +17,7 @@ type Scene () =
 
     let width = 800
     let height = 600
-    let samples = 1
+    let samples = 100
 
     let backgroundColor = Vector3.Zero
 
@@ -26,7 +26,7 @@ type Scene () =
     let depthBuffer = Array2D.create width height System.Single.MaxValue
     let mutable maxFrameBufferDepth = 0.0f
 
-    let maxTraceDepth = 5us
+    let maxTraceDepth = 10us
 
     let mutable id : ID = 1UL
 
@@ -49,8 +49,11 @@ type Scene () =
 
     let spheres : Surface list
         = [
-            Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,-2.0f,-14.0f),2.0f), Material(Rgba32.Green));
+            Dielectric(assignIDAndIncrement id,Sphere(Vector3(2.0f,-2.0f,-12.0f),2.0f), Material(Rgba32.White),1.5f);
+            Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,-2.0f,-19.0f),2.0f), Material(Rgba32.Blue));
+            // Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,-2.0f,-14.0f),2.0f), Material(Rgba32.Green));
             Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.5f,-5.0f,-6.0f),0.8f), Material(Rgba32.Yellow));
+            Lambertian(assignIDAndIncrement id,Sphere(Vector3(-1.5f,2.5f,-9.0f),0.8f), Material(Rgba32.DarkGreen));
             // Lambertian(assignIDAndIncrement id,Sphere(Vector3(-1.5f,0.0f,-14.0f),2.0f),Material(Vector3(0.0f,0.0f,1.0f)))
             Metal(assignIDAndIncrement id,Sphere(Vector3(-6.0f,-0.5f,-6.0f),1.0f), Material(Rgba32.White),0.0f);
             Metal(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-21.0f),5.0f),Material(Rgba32.RoyalBlue),0.3f)
@@ -112,7 +115,8 @@ type Scene () =
         else
             let newTraceDepth = previousTraceDepth + 1us
             let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
-            let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
+            // let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
+            let (realSolution,t,surface) = findClosestIntersection ray surfaces
             let surfaceGeometry : Hitable = surface.Geometry
             if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f (PointForRay ray t)
             then
@@ -126,8 +130,8 @@ type Scene () =
 
     let rayTraceBase (ray : Ray) px py writeToDepth = 
         let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
-        let allOtherSurfaces = (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
-        let (realSolution,t,surface) = findClosestIntersection ray allOtherSurfaces
+        // let allOtherSurfaces = (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
+        let (realSolution,t,surface) = findClosestIntersection ray surfaces
         let surfaceGeometry = surface.Geometry
         if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay (PointForRay ray t) then
             let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t 0
