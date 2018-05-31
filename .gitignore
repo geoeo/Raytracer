@@ -4,3 +4,9 @@ raytracer/bin/*
 raytracer/obj/*
 raytracer/*.jpg
 BenchmarkDotNet.Artifacts/*
+sphere_back2.jpg
+sphere_100.jpg
+sphere_300.jpg
+sphere_back.jpg
+sphere_dielectic.jpg
+sphere_scene.jpg
