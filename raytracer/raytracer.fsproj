@@ -18,6 +18,7 @@
     <Compile Include="Material.fs" />
     <Compile Include="Geometry.fs" />
     <Compile Include="Surface.fs" />
+    <Compile Include="SceneDefinitions.fs" />
     <Compile Include="Scene.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
