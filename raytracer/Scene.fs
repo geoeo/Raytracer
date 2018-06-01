@@ -19,7 +19,7 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 1
+    let samples = 100
 
 
     let backgroundColor = Vector3.Zero
