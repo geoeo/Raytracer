@@ -59,6 +59,7 @@ let RotationBetweenUnitVectors (a : Vector3) (b : Vector3) =
    let angle = AngleAroundOmega(omega)
 
    let c = MathF.Cos(angle)
+//    let c = Vector3.Dot(v1,v2)
    Matrix4x4.Identity + omega_x + Matrix4x4.Multiply(omega_x_squared,(1.0f/(1.0f+c)))
 
 
