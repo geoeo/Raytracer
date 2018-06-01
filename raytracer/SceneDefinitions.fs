@@ -25,7 +25,7 @@ let lights : Surface list
 
 let spheres : Surface list
     = [
-        Dielectric(assignIDAndIncrement id,Sphere(Vector3(4.0f,-2.0f,-12.0f),2.0f), Material(Rgba32.White),1.5f);
+        Dielectric(assignIDAndIncrement id,Sphere(Vector3(4.0f,-2.0f,-12.0f),2.0f), Material(Rgba32.White),1.3f);
         Metal(assignIDAndIncrement id,Sphere(Vector3(4.0f,-2.0f,-19.0f),2.0f), Material(Rgba32.RoyalBlue),0.7f);
         // Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,-2.0f,-14.0f),2.0f), Material(Rgba32.Green));
         Metal(assignIDAndIncrement id,Sphere(Vector3(-1.5f,-5.0f,-7.0f),1.5f), Material(Rgba32.White),0.0f);
