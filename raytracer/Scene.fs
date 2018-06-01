@@ -18,7 +18,8 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 200
+    let samples = 100
+
 
     let backgroundColor = Vector3.Zero
 
@@ -27,7 +28,7 @@ type Scene () =
     let depthBuffer = Array2D.create width height System.Single.MaxValue
     let mutable maxFrameBufferDepth = 0.0f
 
-    let maxTraceDepth = 10us
+    let maxTraceDepth = 6us
 
     let mutable id : ID = 1UL
 
@@ -62,7 +63,7 @@ type Scene () =
             // Metal(assignIDAndIncrement id,Sphere(Vector3(-6.0f,-0.5f,-6.0f),1.0f), Material(Rgba32.White),0.0f);
             // Metal(assignIDAndIncrement id,Sphere(Vector3(-5.0f,0.0f,-21.0f),5.0f),Material(Rgba32.RoyalBlue),0.3f)
             Metal(assignIDAndIncrement id,Sphere(Vector3(-5.0f,-2.0f,-27.5f),2.0f),Material(Rgba32.Violet),0.8f)
-            Dielectric(assignIDAndIncrement id,Sphere(Vector3(-5.0f,2.0f,-11.0f),5.0f),Material(Rgba32.White),1.5f)
+            Dielectric(assignIDAndIncrement id,Sphere(Vector3(-5.1f,2.0f,-11.0f),5.0f),Material(Rgba32.White),1.5f)
           ]
     // let spheres = []
 
