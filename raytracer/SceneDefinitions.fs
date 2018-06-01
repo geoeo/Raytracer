@@ -26,11 +26,11 @@ let lights : Surface list
 let spheres : Surface list
     = [
         Dielectric(assignIDAndIncrement id,Sphere(Vector3(4.0f,-2.0f,-12.0f),2.0f), Material(Rgba32.White),1.3f);
-        Metal(assignIDAndIncrement id,Sphere(Vector3(4.0f,-2.0f,-19.0f),2.0f), Material(Rgba32.RoyalBlue),0.7f);
+        Metal(assignIDAndIncrement id,Sphere(Vector3(3.0f,-1.0f,-19.0f),3.5f), Material(Rgba32.RoyalBlue),0.7f);
         // Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,-2.0f,-14.0f),2.0f), Material(Rgba32.Green));
-        Metal(assignIDAndIncrement id,Sphere(Vector3(-1.5f,-5.0f,-7.0f),1.5f), Material(Rgba32.White),0.0f);
-        Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,-5.0f,-7.0f),1.5f), Material(Rgba32.Red));
-        Lambertian(assignIDAndIncrement id,Sphere(Vector3(6.0f,-5.0f,-7.0f),1.5f), Material(Rgba32.DarkGreen));
+        Metal(assignIDAndIncrement id,Sphere(Vector3(-1.5f,-4.5f,-7.0f),1.5f), Material(Rgba32.White),0.0f);
+        Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,-4.5f,-7.0f),1.5f), Material(Rgba32.Red));
+        Lambertian(assignIDAndIncrement id,Sphere(Vector3(6.0f,-4.5f,-7.0f),1.5f), Material(Rgba32.DarkGreen));
         Dielectric(assignIDAndIncrement id,Sphere(Vector3(2.5f,-3.0f,-3.0f),1.5f), Material(Rgba32.White),1.5f);
         // Lambertian(assignIDAndIncrement id,Sphere(Vector3(-1.5f,2.5f,-9.0f),0.8f), Material(Rgba32.DarkGreen));
         // Lambertian(assignIDAndIncrement id,Sphere(Vector3(-1.5f,0.0f,-14.0f),2.0f),Material(Vector3(0.0f,0.0f,1.0f)))
