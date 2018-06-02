@@ -19,7 +19,7 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 100
+    let samples = 10
 
 
     let backgroundColor = Vector3.Zero
@@ -32,7 +32,6 @@ type Scene () =
     let maxTraceDepth = 6us
 
     let randomState = new Random()
-
         // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
 
     //let planes = []
@@ -83,8 +82,6 @@ type Scene () =
             accEmitted + backgroundColor*accScatter
         else
             let newTraceDepth = previousTraceDepth + 1us
-            //let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
-            // let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
             let (realSolution,t,surface) = findClosestIntersection ray surfaces
             let surfaceGeometry : Hitable = surface.Geometry
             if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f (PointForRay ray t)
@@ -133,7 +130,7 @@ type Scene () =
         let ray = Ray(cameraWS.Translation, dirWS)
         let color = rayTraceBase ray px py true
         let colors = Array.init (samples-1) (fun _ -> rayTraceBase ray px py false)
-        //TODO: investigate multithreading
+        //TODO: investigate multithreading - Henzai.Sampling is not threadsafe
         //let colorSamples = [|for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}|]
         //let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
         //let colors = color :: (colorArray |> List.ofArray)

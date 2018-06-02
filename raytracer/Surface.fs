@@ -10,8 +10,9 @@ open Raytracer
 
 type ID = uint64
 
-// TOD investigate this beheviour for multithreading
+// TODO investigate this beheviour for multithreading
 let randomState = new Random()
+//let randomSampler = new RandomSampling()
         
 [<AbstractClass>]
 type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
@@ -69,7 +70,6 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
 
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
-
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
         let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
