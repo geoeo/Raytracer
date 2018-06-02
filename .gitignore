@@ -5,6 +5,7 @@ raytracer/obj/*
 raytracer/*.jpg
 BenchmarkDotNet.Artifacts/*
 sphere_*
+scene_*
 /.vs/Raytracer
 /Report180602.vsp
 Raytracer.sln
