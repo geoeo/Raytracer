@@ -77,13 +77,13 @@ type Scene () =
             | true -> ((emitted + scattered) :: contributions) 
             | false -> (emitted :: contributions)
 
-    let rec rayTrace (ray : Ray) previousTraceDepth =
+    let rec rayTrace (ray : Ray) previousTraceDepth (accEmitted : Color) (accScatter :Color) =
         if previousTraceDepth > maxTraceDepth 
         then  
-            backgroundColor
+            accEmitted + backgroundColor*accScatter
         else
             let newTraceDepth = previousTraceDepth + 1us
-            let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
+            //let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
             // let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
             let (realSolution,t,surface) = findClosestIntersection ray surfaces
             let surfaceGeometry : Hitable = surface.Geometry
@@ -91,11 +91,13 @@ type Scene () =
             then
                 let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t ((int)newTraceDepth)
                 let emittedShading = surface.Emitted
+                let e = accEmitted + accScatter*emittedShading 
+                let s = accScatter*scatteredShading
                 match doesRayContribute with
-                    | true -> emittedShading + scatteredShading*(rayTrace outRay newTraceDepth)
+                    | true -> (rayTrace outRay newTraceDepth e s)
                     | false -> emittedShading
             else 
-               backgroundColor
+               accEmitted + backgroundColor*accScatter
 
     let rayTraceBase (ray : Ray) px py writeToDepth = 
         let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
@@ -107,7 +109,7 @@ type Scene () =
             if writeToDepth then writeToDepthBuffer t px py
             let emittedShading = surface.Emitted
             match doesRayContribute with
-                | true -> emittedShading + scatteredShading*(rayTrace outRay 1us)
+                | true -> emittedShading + scatteredShading*(rayTrace outRay 1us Vector3.Zero Vector3.One)
                 | false -> emittedShading
         else
             backgroundColor
