@@ -129,7 +129,9 @@ type Scene () =
         let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
         let ray = Ray(cameraWS.Translation, dirWS)
         let color = rayTraceBase ray px py true
-        let colors = Array.init (samples-1) (fun _ -> rayTraceBase ray px py false)
+        //let colors = Array.init (samples-1) (fun _ -> rayTraceBase ray px py false)
+        let iterations = [|1..(samples-1)|]
+        let colors = iterations |> Array.map ( fun _ -> rayTraceBase ray px py false)
         //TODO: investigate multithreading - Henzai.Sampling is not threadsafe
         //let colorSamples = [|for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}|]
         //let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
