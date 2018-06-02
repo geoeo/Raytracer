@@ -19,7 +19,7 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 500
+    let samples = 10
 
 
     let backgroundColor = Vector3.Zero
@@ -32,11 +32,10 @@ type Scene () =
     let maxTraceDepth = 6us
 
     let randomState = new Random()
-
         // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
 
     //let planes = []
-    let surfaces : (Surface list) = scene_spheres
+    let surfaces : (Surface array) = scene_spheres |> Array.ofList
 
     let cameraOriginWS = Vector3(-3.0f,6.0f,15.0f)
     let lookAt = Vector3(-1.0f,1.0f,-10.0f)
@@ -77,25 +76,25 @@ type Scene () =
             | true -> ((emitted + scattered) :: contributions) 
             | false -> (emitted :: contributions)
 
-    let rec rayTrace (ray : Ray) previousTraceDepth =
+    let rec rayTrace (ray : Ray) previousTraceDepth (accEmitted : Color) (accScatter :Color) =
         if previousTraceDepth > maxTraceDepth 
         then  
-            backgroundColor
+            accEmitted + backgroundColor*accScatter
         else
             let newTraceDepth = previousTraceDepth + 1us
-            let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(-Vector3.UnitZ),ray.Direction)
-            // let (realSolution,t,surface) = findClosestIntersection ray (AllSurfacesWithoutId surfaces ray.SurfaceOrigin)
             let (realSolution,t,surface) = findClosestIntersection ray surfaces
             let surfaceGeometry : Hitable = surface.Geometry
             if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f (PointForRay ray t)
             then
                 let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t ((int)newTraceDepth)
                 let emittedShading = surface.Emitted
+                let e = accEmitted + accScatter*emittedShading 
+                let s = accScatter*scatteredShading
                 match doesRayContribute with
-                    | true -> emittedShading + scatteredShading*(rayTrace outRay newTraceDepth)
+                    | true -> (rayTrace outRay newTraceDepth e s)
                     | false -> emittedShading
             else 
-               backgroundColor
+               accEmitted + backgroundColor*accScatter
 
     let rayTraceBase (ray : Ray) px py writeToDepth = 
         let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
@@ -107,7 +106,7 @@ type Scene () =
             if writeToDepth then writeToDepthBuffer t px py
             let emittedShading = surface.Emitted
             match doesRayContribute with
-                | true -> emittedShading + scatteredShading*(rayTrace outRay 1us)
+                | true -> emittedShading + scatteredShading*(rayTrace outRay 1us Vector3.Zero Vector3.One)
                 | false -> emittedShading
         else
             backgroundColor
@@ -121,28 +120,34 @@ type Scene () =
         // let xOff = randVec.X/2.0f
         // let yOff = randVec.Y/2.0f
         ((float32)px + xOff, (float32)py+yOff)
+        
+    let renderPass px py = 
+        let (pxOffset,pyOffset) = pertrube px py
+        let dirCS = 
+            RayDirection (PixelToCamera pxOffset pyOffset (float32 width) (float32 height) fov)
+        let rot = Rotation cameraWS
+        let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
+        let ray = Ray(cameraWS.Translation, dirWS)
+        let color = rayTraceBase ray px py true
+        //let colors = Array.init (samples-1) (fun _ -> rayTraceBase ray px py false)
+        let iterations = [|1..(samples-1)|]
+        let colors = iterations |> Array.map ( fun _ -> rayTraceBase ray px py false)
+        //TODO: investigate multithreading - Henzai.Sampling is not threadsafe
+        //let colorSamples = [|for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}|]
+        //let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
+        //let colors = color :: (colorArray |> List.ofArray)
+        let avgColor = (Array.reduce (fun acc c -> acc+c) colors + color)/(float32)samples
+        //printfn "Completed Ray for pixels (%i,%i)" px py
+        //async {printfn "Completed Ray for pixels (%i,%i)" px py} |> Async.StartAsTask |> ignore
+        //Gamma correct TODO: refactor
+        frameBuffer.[px,py] <- Vector4(Vector3.SquareRoot(avgColor),1.0f)
+
 
     [<Benchmark>]
     member self.renderScene () =
         for px in 0..width-1 do
             for py in 0..height-1 do
-                // offset pixels to achieve antialiasing
-                let (pxOffset,pyOffset) = pertrube px py
-                let dirCS = 
-                    RayDirection (PixelToCamera pxOffset pyOffset (float32 width) (float32 height) fov)
-                let rot = Rotation cameraWS
-                let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
-                let ray = Ray(cameraWS.Translation, dirWS)
-                let color = rayTraceBase ray px py true
-                let colors = color :: List.init (samples-1) (fun _ -> rayTraceBase ray px py false)
-                //let colorArray = Async.Parallel [for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}]  |> Async.RunSynchronously
-                //let colors = color :: (colorArray |> List.ofArray)
-                let colors = color :: colors
-                let avgColor = (List.reduce (fun acc c -> acc+c) colors)/(float32)samples
-                printfn "Completed Ray for pixels (%i,%i)" px py
-                //Gamma correct TODO: refactor
-                frameBuffer.[px,py] <- Vector4(Vector3.SquareRoot(avgColor),1.0f)
-
+                renderPass px py
 
     member self.saveFrameBuffer () =
         using (File.OpenWrite("sphere.jpg")) (fun output ->

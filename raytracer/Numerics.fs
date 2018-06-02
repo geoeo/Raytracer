@@ -24,6 +24,7 @@ let ApplyFuncToVector3 func (vec : Vector3) = Vector3(func vec.X,func vec.Y,func
 let SurfaceNormal a b c = Vector3.Normalize(Vector3(a,b,c))
 
 let Power exp b = MathF.Pow(b,exp)
+let inline Square b : float32 = b*b
 
 let Rotation (matrix : Matrix4x4)
     = Matrix4x4(matrix.M11,matrix.M12,matrix.M13,0.0f,
@@ -49,9 +50,11 @@ let AngleAroundOmega (omega : Vector3) = MathF.Sqrt(Vector3.Dot(omega,omega))
 
 /// Computes the SO3 Matrix from a to b
 /// https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d/897677#897677
-let RotationBetweenUnitVectors (a : Vector3) (b : Vector3) =
-   let v1 = NormalizedOrFail(a)
-   let v2 = NormalizedOrFail(b)
+let RotationBetweenUnitVectors (a : Vector3) (b : Vector3) (mat : Matrix4x4 byref) =
+   //let v1 = NormalizedOrFail(a)
+   //let v2 = NormalizedOrFail(b)
+   let v1 = a
+   let v2 = b
 
    let omega = Vector3.Cross(v1,v2)
    let omega_x = SkewSymmetric(omega)
@@ -60,7 +63,9 @@ let RotationBetweenUnitVectors (a : Vector3) (b : Vector3) =
 
    let c = MathF.Cos(angle)
 //    let c = Vector3.Dot(v1,v2)
-   Matrix4x4.Identity + omega_x + Matrix4x4.Multiply(omega_x_squared,(1.0f/(1.0f+c)))
+   //TODO: Reduce memory copy by doing copy in memory
+   mat <- Matrix4x4.Identity + omega_x + Matrix4x4.Multiply(omega_x_squared,(1.0f/(1.0f+c)))
+   ()
 
 
    

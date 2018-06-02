@@ -63,8 +63,8 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
             //A is always one
             let centerToRay = ray.Origin - this.Center
             let B = 2.0f*Vector3.Dot(centerToRay,ray.Direction)
-            let C = Vector3.Dot(centerToRay,centerToRay)-this.Radius**2.0f
-            let discriminant = B**2.0f - 4.0f*C
+            let C = Vector3.Dot(centerToRay,centerToRay)-(Square this.Radius)
+            let discriminant = B*B - 4.0f*C
             if discriminant < 0.0f then (false, 0.0f,0.0f)
             // TODO: may cause alsiasing investigate around sphere edges
             else if Round discriminant 3 = 0.0f then (false,-B/(2.0f),System.Single.MinValue)
@@ -94,14 +94,15 @@ type Sphere(sphereCenter : Origin,radius : Radius) =
 type Plane(plane : System.Numerics.Plane, center : Point option, width : float32 option, height : float32 option ) = 
     inherit Hitable () with
         member this.Plane = plane
-        member this.Normal = this.Plane.Normal
+        member this.Normal = Vector3.Normalize(this.Plane.Normal)
         member this.Center = center
         member this.Width = width
         member this.Height = height
         member this.PointLiesInRectangle (point : Point) =
             let widthOff = this.Width.Value / 2.0f
             let heightOff = this.Height.Value / 2.0f
-            let R = RotationBetweenUnitVectors this.Normal CanonicalPlaneSpace
+            let mutable R = Matrix4x4.Identity
+            RotationBetweenUnitVectors this.Normal CanonicalPlaneSpace (&R)
             let kern = if this.Plane.D > 0.0f then -1.0f*this.Plane.D*this.Normal else this.Plane.D*this.Normal
             let v = point - kern
             let b = this.Center.Value - kern
