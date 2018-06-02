@@ -1,13 +1,22 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "raytracer", "raytracer\raytracer.fsproj", "{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "raytracer", "raytracer\raytracer.fsproj", "{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Henzai", "..\henzai\Henzai\Henzai.csproj", "{BE7279DB-D16B-47E2-9CB5-2291A013919F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2ED8F658-9EF4-4BEA-8646-051A423FF654}"
+	ProjectSection(SolutionItems) = preProject
+		Performance1.psess = Performance1.psess
+		Performance2.psess = Performance2.psess
+		Performance3.psess = Performance3.psess
+		Performance4.psess = Performance4.psess
+	EndProjectSection
 EndProject
 Global
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,15 +29,45 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|x64.ActiveCfg = Debug|x64
-		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|x64.Build.0 = Debug|x64
-		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|x86.ActiveCfg = Debug|x86
-		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|x86.Build.0 = Debug|x86
+		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|x64.Build.0 = Debug|Any CPU
+		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Debug|x86.Build.0 = Debug|Any CPU
 		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|Any CPU.Build.0 = Release|Any CPU
-		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|x64.ActiveCfg = Release|x64
-		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|x64.Build.0 = Release|x64
-		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|x86.ActiveCfg = Release|x86
-		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|x86.Build.0 = Release|x86
+		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|x64.ActiveCfg = Release|Any CPU
+		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|x64.Build.0 = Release|Any CPU
+		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|x86.ActiveCfg = Release|Any CPU
+		{78F77C3A-DDC0-472A-B321-B0FD5FD78D99}.Release|x86.Build.0 = Release|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Debug|x64.Build.0 = Debug|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Debug|x86.Build.0 = Debug|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Release|x64.ActiveCfg = Release|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Release|x64.Build.0 = Release|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Release|x86.ActiveCfg = Release|Any CPU
+		{BE7279DB-D16B-47E2-9CB5-2291A013919F}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DE5B25A7-D0BD-437B-AD8E-A67F21B5A266}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

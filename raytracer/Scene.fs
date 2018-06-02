@@ -19,7 +19,7 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 500
+    let samples = 100
 
 
     let backgroundColor = Vector3.Zero
@@ -36,7 +36,7 @@ type Scene () =
         // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
 
     //let planes = []
-    let surfaces : (Surface list) = scene_spheres
+    let surfaces : (Surface array) = scene_spheres |> Array.ofList
 
     let cameraOriginWS = Vector3(-3.0f,6.0f,15.0f)
     let lookAt = Vector3(-1.0f,1.0f,-10.0f)
@@ -121,28 +121,32 @@ type Scene () =
         // let xOff = randVec.X/2.0f
         // let yOff = randVec.Y/2.0f
         ((float32)px + xOff, (float32)py+yOff)
+        
+    let renderPass px py = 
+        let (pxOffset,pyOffset) = pertrube px py
+        let dirCS = 
+            RayDirection (PixelToCamera pxOffset pyOffset (float32 width) (float32 height) fov)
+        let rot = Rotation cameraWS
+        let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
+        let ray = Ray(cameraWS.Translation, dirWS)
+        let color = rayTraceBase ray px py true
+        let colors = Array.init (samples-1) (fun _ -> rayTraceBase ray px py false)
+        //TODO: investigate multithreading
+        //let colorSamples = [|for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}|]
+        //let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
+        //let colors = color :: (colorArray |> List.ofArray)
+        let avgColor = (Array.reduce (fun acc c -> acc+c) colors + color)/(float32)samples
+        //printfn "Completed Ray for pixels (%i,%i)" px py
+        //async {printfn "Completed Ray for pixels (%i,%i)" px py} |> Async.StartAsTask |> ignore
+        //Gamma correct TODO: refactor
+        frameBuffer.[px,py] <- Vector4(Vector3.SquareRoot(avgColor),1.0f)
+
 
     [<Benchmark>]
     member self.renderScene () =
         for px in 0..width-1 do
             for py in 0..height-1 do
-                // offset pixels to achieve antialiasing
-                let (pxOffset,pyOffset) = pertrube px py
-                let dirCS = 
-                    RayDirection (PixelToCamera pxOffset pyOffset (float32 width) (float32 height) fov)
-                let rot = Rotation cameraWS
-                let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
-                let ray = Ray(cameraWS.Translation, dirWS)
-                let color = rayTraceBase ray px py true
-                let colors = color :: List.init (samples-1) (fun _ -> rayTraceBase ray px py false)
-                //let colorArray = Async.Parallel [for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}]  |> Async.RunSynchronously
-                //let colors = color :: (colorArray |> List.ofArray)
-                let colors = color :: colors
-                let avgColor = (List.reduce (fun acc c -> acc+c) colors)/(float32)samples
-                printfn "Completed Ray for pixels (%i,%i)" px py
-                //Gamma correct TODO: refactor
-                frameBuffer.[px,py] <- Vector4(Vector3.SquareRoot(avgColor),1.0f)
-
+                renderPass px py
 
     member self.saveFrameBuffer () =
         using (File.OpenWrite("sphere.jpg")) (fun output ->
