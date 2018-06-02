@@ -6,10 +6,11 @@
   <ItemGroup>
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0002" />
     <PackageReference Include="BenchmarkDotNet" Version="0.10.14" />
+    <ProjectReference Include="../../henzai/Henzai/Henzai.csproj" />
     <!-- check reference path property to set release dll -->
-    <ProjectReference Include="/Users/marchaubenstock/Workspace/DotNet/henzai/Henzai/Henzai.csproj">
+    <!--<ProjectReference Include="/Users/marchaubenstock/Workspace/DotNet/henzai/Henzai/Henzai.csproj">
       <AdditionalProperties>Configuration=Release</AdditionalProperties>
-    </ProjectReference>
+    </ProjectReference> -->
     <!-- <Reference Include="/Users/marchaubenstock/Workspace/DotNet/henzai/Henzai/bin/Release/netcoreapp2.0/Henzai.dll"/> -->
   </ItemGroup>
   <ItemGroup>

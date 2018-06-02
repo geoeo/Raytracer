@@ -3,14 +3,16 @@ module Raytracer.Surface
 open System
 open System.Numerics
 open Raytracer.Geometry
-//open Raytracer.Material
+//open Raytracer.Materials
 open Henzai.Sampling
 open Raytracer.Numerics
 open Raytracer
 
 type ID = uint64
 
+// TODO investigate this beheviour for multithreading
 let randomState = new Random()
+//let randomSampler = new RandomSampling()
         
 [<AbstractClass>]
 type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
@@ -28,15 +30,16 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
 type NoSurface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id, geometry, material)
 
-// TODO refactor into geometry class
-let findClosestIntersection (ray : Ray) (surfaces : Surface list) =
-    let allIntersections = List.map flattenIntersection (List.map (fun (x : Surface) -> (x.Geometry.Intersect ray),x) surfaces)
-    let allIntersectionsWithRealSolutions = List.filter (fun ((b,t,v) : bool*LineParameter*Surface) ->  v.Geometry.IntersectionAcceptable b t 1.0f (PointForRay ray t)) allIntersections
-    let closestIntersection : bool*LineParameter*Surface = 
-        match allIntersectionsWithRealSolutions with 
-            | [] -> (false,0.0f, upcast (NoSurface(0UL,NotHitable(),Raytracer.Material.Material(Vector3.Zero))))
-            | realSolutions -> List.reduce (fun smallest current -> smallestIntersection smallest current) realSolutions
-    closestIntersection
+let findClosestIntersection (ray : Ray) (surfaces : Surface array) =
+    let mutable (bMin,tMin,vMin : Surface) = (false,Single.MaxValue, upcast (NoSurface(0UL,NotHitable(),Raytracer.Material.Material(Vector3.Zero))))
+    for surface in surfaces do
+        let (b,t) = surface.Geometry.Intersect ray
+        if surface.Geometry.IntersectionAcceptable b t 1.0f (PointForRay ray t) &&  t < tMin then
+            bMin <- b
+            tMin <- t
+            vMin <- surface
+
+    (bMin,tMin,vMin)
 
 type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id,geometry,material)
@@ -53,7 +56,6 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let outDir = Vector3.Normalize(normal+rand_norm)
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
-        // let doesRayContribute = not (geometry.IsObstructedBySelf outRay)
         let attenuation = this.Material.Albedo
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
         (true,outRay,attenuationDepthAdjusted)
@@ -68,18 +70,16 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
 
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
-
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
         let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
+        //let rand_norm = Vector3.UnitX
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
         let normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface + this.Fuzz*rand_norm)
 
         let outDir = Vector3.Normalize(this.Reflect incommingRay normal)
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    
-        // let isObstructedBySelf = (this.Geometry.IsObstructedBySelf outRay)
-        // let doesRayContribute = (not isObstructedBySelf)
         let attenuation = material.Albedo
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
         (true,outRay,attenuationDepthAdjusted)
@@ -99,7 +99,7 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
 
     member this.Refract (incommingDirection : Direction) (normalToSurface : Normal) (refractiveIncidenceOverTransmission : float32) (cos_incidence : float32) =
-        let discriminant = 1.0f - (refractiveIncidenceOverTransmission**2.0f)*(1.0f - cos_incidence**2.0f)
+        let discriminant = 1.0f - (Square refractiveIncidenceOverTransmission)*(1.0f - Square cos_incidence)
         if discriminant > 0.0f then 
             let refracted = refractiveIncidenceOverTransmission*(incommingDirection + cos_incidence*normalToSurface) - normalToSurface*MathF.Sqrt(discriminant)
             (true, Vector3.Normalize(refracted))
@@ -111,6 +111,7 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
         let randomFloat = RandomSampling.RandomFloat(ref randomUnsingedInt)
+        //let randomFloat = 0.5f
 
         let attenuation = material.Albedo
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
@@ -136,20 +137,16 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         if randomFloat <= reflectProb 
         then 
             let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)
-            // let isObstructedBySelf = (this.Geometry.IsObstructedBySelf reflectRay)
-            // let doesRayContribute = (not isObstructedBySelf)
             (true,reflectRay,attenuationDepthAdjusted)
         else // refraction has to have been successful
             let refractRay = Ray(positionOnSurface,refrationDir)
-            //let isObstructedBySelf = (this.Geometry.IsObstructedBySelf refractRay)
-            //let doesRayContribute = (not isObstructedBySelf)
             (true,refractRay,attenuationDepthAdjusted)
 
 
 
 //https://learnopengl.com/Lighting/Light-casters
 //TODO refactor constants
-let attenuate distance = 1.0f/(1.0f + 0.5f*distance + 0.02f*(distance**2.0f))
+let attenuate distance = 1.0f/(1.0f + 0.5f*distance + 0.02f*(distance*distance))
 let AllSurfacesWithoutId (surfaces : Surface list) (id : ID) =
     List.filter (fun (surface : Surface) -> surface.ID <> id) surfaces
 

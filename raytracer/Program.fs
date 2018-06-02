@@ -1,4 +1,5 @@
-﻿open Raytracer.Scene
+﻿open System
+open Raytracer.Scene
 open BenchmarkDotNet.Running
 
 
@@ -6,8 +7,12 @@ let benchmarkScene = lazy BenchmarkRunner.Run<Raytracer.Scene.Scene>()
 
 [<EntryPoint>]
 let main argv =
+    Console.Write("Press Enter")
+    let input = Console.ReadLine()
+    Console.Write("Starting..")
     let mainScene = new Scene ()
     mainScene.renderScene ()
+    Console.Write("Finished Rendering")
     mainScene.saveFrameBuffer ()
     mainScene.saveDepthBuffer ()
     // let summary = benchmarkScene.Force()
