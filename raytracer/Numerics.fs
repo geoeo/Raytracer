@@ -10,7 +10,9 @@ let Round (num :float32) (digits:int) = MathF.Round(num,digits)
 
 //TODO: Investigate Vector3 normalization in fsharp
 let NormalizedOrFail(value : Vector3) = 
-    if Round (value.Length()) 5 = 1.0f then value else failwith "Vector3 not normalized"
+    if Round (value.Length()) 5 = 1.0f then 
+        value else 
+        failwith "Vector3 not normalized"
 
 let RoundVec3 (vec3:Vector3) (digits:int) =
     Vector3(Round vec3.X digits, Round vec3.Y digits, Round vec3.Z digits)
@@ -51,8 +53,6 @@ let AngleAroundOmega (omega : Vector3) = MathF.Sqrt(Vector3.Dot(omega,omega))
 /// Computes the SO3 Matrix from a to b
 /// https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d/897677#897677
 let RotationBetweenUnitVectors (a : Vector3) (b : Vector3) (mat : Matrix4x4 byref) =
-   //let v1 = NormalizedOrFail(a)
-   //let v2 = NormalizedOrFail(b)
    let v1 = a
    let v2 = b
 

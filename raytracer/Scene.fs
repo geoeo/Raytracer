@@ -19,7 +19,7 @@ type Scene () =
 
     let width = 640
     let height = 480
-    let samples = 100
+    let samples = 1000
     let backgroundColor = Vector3.Zero
     // let frameBuffer = Array2D.create width height defaultColor
     let frameBuffer = Array2D.create width height Vector4.Zero
@@ -127,11 +127,11 @@ type Scene () =
         let ray = Ray(cameraWS.Translation, dirWS)
         let color = rayTraceBase ray px py true
         //let colors = Array.init (samples-1) (fun _ -> rayTraceBase ray px py false)
-        let iterations = [|1..(samples-1)|]
-        let colors = iterations |> Array.map ( fun _ -> rayTraceBase ray px py false)
+        //let iterations = [|1..(samples-1)|]
+        //let colors = Array.map ( fun _ -> rayTraceBase ray px py false) iterations
         //TODO: investigate multithreading - Henzai.Sampling is not threadsafe
-        //let colorSamples = [|for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}|]
-        //let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
+        let colorSamples = [|for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}|]
+        let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
         //let colors = color :: (colorArray |> List.ofArray)
         let avgColor = (Array.reduce (fun acc c -> acc+c) colors + color)/(float32)samples
         //printfn "Completed Ray for pixels (%i,%i)" px py

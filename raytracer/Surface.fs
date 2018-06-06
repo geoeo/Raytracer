@@ -12,7 +12,6 @@ type ID = uint64
 
 // TODO investigate this beheviour for multithreading
 let randomState = new Random()
-//let randomSampler = new RandomSampling()
         
 [<AbstractClass>]
 type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
@@ -52,7 +51,8 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let normal = this.Geometry.NormalForSurfacePoint positionOnSurface
 
         //TODO sample hemisphere
-        let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
+        //let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
+        let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
         let outDir = Vector3.Normalize(normal+rand_norm)
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
@@ -72,7 +72,8 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
-        let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
+        // let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
+        let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
         //let rand_norm = Vector3.UnitX
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
@@ -105,13 +106,10 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
             (true, Vector3.Normalize(refracted))
         // total internal refleciton
         else (false, Vector3.Zero) 
-
-    //TODO: investigate refraction artefacts
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
         let randomInt = randomState.Next()
         let randomUnsingedInt : uint32 = (uint32) randomInt
-        let randomFloat = RandomSampling.RandomFloat(ref randomUnsingedInt)
-        //let randomFloat = 0.5f
+        let randomFloat = RandomSampling.RandomFloat_Sync()
 
         let attenuation = material.Albedo
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation

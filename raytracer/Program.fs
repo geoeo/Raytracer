@@ -8,7 +8,7 @@ let benchmarkScene = lazy BenchmarkRunner.Run<Raytracer.Scene.Scene>()
 [<EntryPoint>]
 let main argv =
     Console.Write("Press Enter")
-    let input = Console.ReadLine()
+    //let input = Console.ReadLine()
     Console.Write("Starting..")
     let mainScene = new Scene ()
     mainScene.renderScene ()
