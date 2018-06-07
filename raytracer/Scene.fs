@@ -17,9 +17,9 @@ open BenchmarkDotNet.Attributes
 
 type Scene () =
 
-    let width = 640
-    let height = 480
-    let samples = 1000
+    let width = 800
+    let height = 600
+    let samples = 700
     let backgroundColor = Vector3.Zero
     // let frameBuffer = Array2D.create width height defaultColor
     let frameBuffer = Array2D.create width height Vector4.Zero
