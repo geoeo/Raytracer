@@ -10,9 +10,11 @@ let Round (num :float32) (digits:int) = MathF.Round(num,digits)
 
 //TODO: Investigate Vector3 normalization in fsharp
 let NormalizedOrFail(value : Vector3) = 
-    if Round (value.Length()) 5 = 1.0f then 
-        value else 
-        failwith "Vector3 not normalized"
+    if Round (value.Length()) 5 = 1.0f then value 
+        else
+            printfn "WARN: Vector3 not normalized %f %f %f" value.X value.Y value.Z
+            Vector3.Normalize(value)
+            // failwith "Vector3 not normalized"
 
 let RoundVec3 (vec3:Vector3) (digits:int) =
     Vector3(Round vec3.X digits, Round vec3.Y digits, Round vec3.Z digits)
