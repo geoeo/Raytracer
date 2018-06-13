@@ -17,16 +17,16 @@ open BenchmarkDotNet.Attributes
 
 type Scene () =
 
-    let width = 800
-    let height = 600
-    let samples = 700
+    let width = 400
+    let height = 400
+    let samples = 10000
+    let maxTraceDepth = 10us
     let backgroundColor = Vector3.Zero
     // let frameBuffer = Array2D.create width height defaultColor
     let frameBuffer = Array2D.create width height Vector4.Zero
     let depthBuffer = Array2D.create width height System.Single.MaxValue
     let mutable maxFrameBufferDepth = 0.0f
 
-    let maxTraceDepth = 6us
 
     let randomState = new Random()
         // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
@@ -126,13 +126,8 @@ type Scene () =
         let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
         let ray = Ray(cameraWS.Translation, dirWS)
         let color = rayTraceBase ray px py true
-        //let colors = Array.init (samples-1) (fun _ -> rayTraceBase ray px py false)
-        //let iterations = [|1..(samples-1)|]
-        //let colors = Array.map ( fun _ -> rayTraceBase ray px py false) iterations
-        //TODO: investigate multithreading - Henzai.Sampling is not threadsafe
         let colorSamples = [|for _ in 0..(samples-1) -> async {return rayTraceBase ray px py false}|]
         let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
-        //let colors = color :: (colorArray |> List.ofArray)
         let avgColor = (Array.reduce (fun acc c -> acc+c) colors + color)/(float32)samples
         //printfn "Completed Ray for pixels (%i,%i)" px py
         //async {printfn "Completed Ray for pixels (%i,%i)" px py} |> Async.StartAsTask |> ignore
