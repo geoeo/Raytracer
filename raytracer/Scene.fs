@@ -17,9 +17,9 @@ open BenchmarkDotNet.Attributes
 
 type Scene () =
 
-    let width = 400
-    let height = 400
-    let samples = 10000
+    let width = 800
+    let height = 640
+    let samples = 100
     let maxTraceDepth = 10us
     let backgroundColor = Vector3.Zero
     // let frameBuffer = Array2D.create width height defaultColor
@@ -46,32 +46,7 @@ type Scene () =
     let writeToDepthBuffer t px py = 
         depthBuffer.[px,py] <- t
         if t > maxFrameBufferDepth then 
-            maxFrameBufferDepth <- t  
-
-    let weighting x = MathF.Pow(0.5f,x)
-
-    let weightList (contributions : Raytracer.Material.Color list) =
-        // let stepSize = MathF.PI/(2.0f*((float32)contributions.Length))
-        let stepSize = MathF.PI/(2.0f*((float32)contributions.Length))
-        // let weightingSamples = List.map MathF.Cos [0.0f..stepSize..(MathF.PI/2.0f-stepSize)]
-        let weightingSamples = List.map weighting [0.0f..1.0f..((float32)contributions.Length-1.0f)]
-        List.map (fun (a,b) -> a*b) (List.zip weightingSamples contributions)
-
-    let CalcNormFactor (input :Vector3) = (Vector3.Normalize(input/MathF.Max(input.X,MathF.Max(input.Y,input.Z))))
-
-    //Todo: investigage attenuation + color spaces
-    //TODO: check how rays are composed. If the last ray cotributes, all rays should
-    let composeContributions (contributions : Raytracer.Material.Color list) = 
-        match contributions with 
-            | [] -> Vector3.Zero
-            | list -> List.reduce (fun acc shading -> acc*shading)  ((list))
-
-
-    //TODO: check how rays are composed. If the last ray cotributes, all rays should
-    let updateContributions doesRayContribute (emitted:Color) (scattered:Color) contributions =
-        match  doesRayContribute with   
-            | true -> ((emitted + scattered) :: contributions) 
-            | false -> (emitted :: contributions)
+            maxFrameBufferDepth <- t 
 
     let rec rayTrace (ray : Ray) previousTraceDepth (accEmitted : Color) (accScatter :Color) =
         if previousTraceDepth > maxTraceDepth 
@@ -109,13 +84,12 @@ type Scene () =
             backgroundColor
 
     let pertrube px py = 
-        let randomInt = randomState.Next()
-        let randomUnsingedInt : uint32 = (uint32) randomInt
-        let randVec = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
-        let xOff = randVec.X/((float32)(width))
-        let yOff = randVec.Y/((float32)(height))
-        // let xOff = randVec.X/2.0f
-        // let yOff = randVec.Y/2.0f
+        let randVec = RandomSampling.RandomInUnitSphere_Sync()
+        // let xOff = randVec.X/((float32)(width))
+        // let yOff = randVec.Y/((float32)(height))
+        //TODO: investigate artefacts 
+        let xOff = randVec.X/10.0f
+        let yOff = randVec.Y/10.0f
         ((float32)px + xOff, (float32)py+yOff)
         
     let renderPass px py = 
@@ -133,6 +107,7 @@ type Scene () =
         //async {printfn "Completed Ray for pixels (%i,%i)" px py} |> Async.StartAsTask |> ignore
         //Gamma correct TODO: refactor
         frameBuffer.[px,py] <- Vector4(Vector3.SquareRoot(avgColor),1.0f)
+        // frameBuffer.[px,py] <- Vector4(avgColor,1.0f)
 
 
     [<Benchmark>]

@@ -44,19 +44,17 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
     inherit Surface(id,geometry,material)
 
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
-        let randomInt = randomState.Next()
-        let randomUnsingedInt : uint32 = (uint32) randomInt
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
         let normal = this.Geometry.NormalForSurfacePoint positionOnSurface
 
         //TODO sample hemisphere
-        //let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
         let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
         let outDir = Vector3.Normalize(normal+rand_norm)
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
         let attenuation = this.Material.Albedo
+        // let attenuation = this.Material.Albedo / MathF.PI // TODO: Needed for true Rendering Eq. BRDF
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
         (true,outRay,attenuationDepthAdjusted)
 
@@ -70,9 +68,7 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
 
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
-        let randomInt = randomState.Next()
-        let randomUnsingedInt : uint32 = (uint32) randomInt
-        // let rand_norm = RandomSampling.RandomInUnitSphere(ref randomUnsingedInt)
+        //TODO sample hemisphere
         let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
         //let rand_norm = Vector3.UnitX
 
@@ -82,6 +78,7 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         let outDir = Vector3.Normalize(this.Reflect incommingRay normal)
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    
         let attenuation = material.Albedo
+        // let attenuation = material.Albedo / MathF.PI // TODO: Needed for true Rendering Eq. BRDF
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
         (true,outRay,attenuationDepthAdjusted)
 
@@ -107,11 +104,11 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         // total internal refleciton
         else (false, Vector3.Zero) 
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
-        let randomInt = randomState.Next()
-        let randomUnsingedInt : uint32 = (uint32) randomInt
-        let randomFloat = RandomSampling.RandomFloat_Sync()
+        // let randomInt = randomState.Next()
+        // let randomUnsingedInt : uint32 = (uint32) randomInt
 
         let attenuation = material.Albedo
+        // let attenuation = material.Albedo/MathF.PI // TODO: Needed for true Rendering Eq. BRDF
         let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
@@ -129,9 +126,10 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
                 refrativeIndexAir, this.RefractiveIndex , normal
         let cos_incidence =  Vector3.Dot(incommingRay.Direction,-fresnelNormal)
         let (refracted,refrationDir) = this.Refract incommingRay.Direction fresnelNormal (incidenceIndex/transmissionIndex) cos_incidence
+        
         //Use schlick if refraction was successful
         let reflectProb = if refracted then this.SchlickApprx cos_incidence incidenceIndex transmissionIndex  else 1.0f
-
+        let randomFloat = RandomSampling.RandomFloat_Sync()
         if randomFloat <= reflectProb 
         then 
             let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)
