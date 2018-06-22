@@ -19,7 +19,7 @@ type Scene () =
 
     let width = 800
     let height = 640
-    let samples = 100
+    let samples = 10
     let maxTraceDepth = 10us
     let backgroundColor = Vector3.Zero
     // let frameBuffer = Array2D.create width height defaultColor
