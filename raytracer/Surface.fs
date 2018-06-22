@@ -10,7 +10,6 @@ open Raytracer
 
 type ID = uint64
 
-// TODO investigate this beheviour for multithreading
 let randomState = new Random()
         
 [<AbstractClass>]
@@ -48,10 +47,6 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
         let mutable normal = this.Geometry.NormalForSurfacePoint positionOnSurface
 
-        //sampling sphere
-        // let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
-        // let outDir = Vector3.Normalize(normal+rand_norm)
-
         //sampling hemisphere
         let rand_norm = RandomSampling.RandomInUnitHemisphere_Sync()
         let mutable nb = Vector3.Zero
@@ -81,11 +76,6 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
         let mutable normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface)
-
-        //sampling sphere
-        // let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
-        // let modifiedNormal = Vector3.Normalize(normal + this.Fuzz*rand_norm)
-        //let rand_norm = Vector3.UnitX
 
         //sampling hemisphere
         let rand_norm = RandomSampling.RandomInUnitHemisphere_Sync()
@@ -125,8 +115,6 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         // total internal refleciton
         else (false, Vector3.Zero) 
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
-        // let randomInt = randomState.Next()
-        // let randomUnsingedInt : uint32 = (uint32) randomInt
 
         let attenuation = material.Albedo
         // let attenuation = material.Albedo/MathF.PI // TODO: Needed for true Rendering Eq. BRDF
