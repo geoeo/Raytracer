@@ -61,7 +61,6 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let normalSample = Vector4.Transform(rand_norm,changeOfBaseMatrix)
         let outDir = Vector3.Normalize(ToVec3 normalSample)
 
-
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
         let attenuation = this.Material.Albedo
@@ -96,7 +95,6 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         let changeOfBaseMatrix = ChangeOfBase &nt &normal &nb
         let normalSample = ToVec3 (Vector4.Transform(rand_norm,changeOfBaseMatrix))
         let modifiedNormal = Vector3.Normalize((1.0f - this.Fuzz)*normal + this.Fuzz*normalSample)
-
 
         let outDir = Vector3.Normalize(this.Reflect incommingRay modifiedNormal)
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    

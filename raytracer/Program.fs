@@ -15,5 +15,5 @@ let main argv =
     printfn "Finished Rendering"
     mainScene.saveFrameBuffer ()
     mainScene.saveDepthBuffer ()
-    // let summary = benchmarkScene.Force()
+    //let summary = benchmarkScene.Force()
     0 // return an integer exit code

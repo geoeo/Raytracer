@@ -27,11 +27,7 @@ type Scene () =
     let depthBuffer = Array2D.create width height System.Single.MaxValue
     let mutable maxFrameBufferDepth = 0.0f
 
-
-    let randomState = new Random()
         // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
-
-    //let planes = []
     let surfaces : (Surface array) = scene_spheres |> Array.ofList
 
     let cameraOriginWS = Vector3(-3.0f,6.0f,15.0f)
