@@ -11,7 +11,7 @@ open Raytracer.Geometry
 open Raytracer.Material
 open Raytracer.Numerics
 open Raytracer.SceneDefinitions
-open Henzai.Sampling
+open Henzai.Numerics
 open BenchmarkDotNet.Attributes
 
 

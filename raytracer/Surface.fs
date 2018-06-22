@@ -4,7 +4,7 @@ open System
 open System.Numerics
 open Raytracer.Geometry
 //open Raytracer.Materials
-open Henzai.Sampling
+open Henzai.Numerics
 open Raytracer.Numerics
 open Raytracer
 
@@ -46,11 +46,22 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
-        let normal = this.Geometry.NormalForSurfacePoint positionOnSurface
+        let mutable normal = this.Geometry.NormalForSurfacePoint positionOnSurface
 
-        //TODO sample hemisphere
-        let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
-        let outDir = Vector3.Normalize(normal+rand_norm)
+        //sampling sphere
+        // let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
+        // let outDir = Vector3.Normalize(normal+rand_norm)
+
+        //sampling hemisphere
+        let rand_norm = RandomSampling.RandomInUnitHemisphere_Sync()
+        let mutable nb = Vector3.Zero
+        let mutable nt = Vector3.Zero
+        Henzai.Numerics.Geometry.CreateCoordinateSystemAroundNormal(&normal,&nt,&nb)
+        let changeOfBaseMatrix = ChangeOfBase &nt &normal &nb
+        let normalSample = Vector4.Transform(rand_norm,changeOfBaseMatrix)
+        let outDir = Vector3.Normalize(ToVec3 normalSample)
+
+
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
         let attenuation = this.Material.Albedo
@@ -68,14 +79,26 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
 
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
-        //TODO sample hemisphere
-        let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
-        //let rand_norm = Vector3.UnitX
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
-        let normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface + this.Fuzz*rand_norm)
+        let mutable normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface)
 
-        let outDir = Vector3.Normalize(this.Reflect incommingRay normal)
+        //sampling sphere
+        // let rand_norm = RandomSampling.RandomInUnitSphere_Sync()
+        // let modifiedNormal = Vector3.Normalize(normal + this.Fuzz*rand_norm)
+        //let rand_norm = Vector3.UnitX
+
+        //sampling hemisphere
+        let rand_norm = RandomSampling.RandomInUnitHemisphere_Sync()
+        let mutable nb = Vector3.Zero
+        let mutable nt = Vector3.Zero
+        Henzai.Numerics.Geometry.CreateCoordinateSystemAroundNormal(&normal,&nt,&nb)
+        let changeOfBaseMatrix = ChangeOfBase &nt &normal &nb
+        let normalSample = ToVec3 (Vector4.Transform(rand_norm,changeOfBaseMatrix))
+        let modifiedNormal = Vector3.Normalize((1.0f - this.Fuzz)*normal + this.Fuzz*normalSample)
+
+
+        let outDir = Vector3.Normalize(this.Reflect incommingRay modifiedNormal)
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    
         let attenuation = material.Albedo
         // let attenuation = material.Albedo / MathF.PI // TODO: Needed for true Rendering Eq. BRDF

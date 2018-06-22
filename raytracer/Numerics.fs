@@ -42,6 +42,12 @@ let TransposeRot (matrix : Matrix4x4) =
               matrix.M13,matrix.M23,matrix.M33,0.0f,
               0.0f,0.0f,0.0f,0.0f)
 
+let ChangeOfBase (nt : Vector3 byref) (n : Vector3 byref) (nb : Vector3 byref) 
+    = Matrix4x4(nt.X,nt.Y,nt.Z,0.0f,
+                n.X,n.Y,n.Z,0.0f,
+                nb.X,nb.Y,nb.Z,0.0f,
+                0.0f,0.0f,0.0f,0.0f)
+
 let SkewSymmetric (v : Vector3) =
     Matrix4x4(0.0f , -v.Z, v.Y,0.0f,
               v.Z, 0.0f, -v.X, 0.0f,
