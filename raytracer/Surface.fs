@@ -22,6 +22,7 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
     member this.ID = id
     member this.Geometry = geometry
     member this.Material = material
+    member this.MCNormalization = MathF.Max((float32)this.SampleCount, 1.0f)
     // default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),Vector3.UnitY)
     default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),1.0f)
     default this.Emitted = this.Material.Emmitance

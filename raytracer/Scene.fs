@@ -47,26 +47,24 @@ type Scene () =
     let rec rayTrace (ray : Ray) previousTraceDepth (accEmitted : Color) (accScatter :Color) =
         if previousTraceDepth > maxTraceDepth 
         then  
-            backgroundColor
+            accEmitted + backgroundColor*accScatter
         else
             let newTraceDepth = previousTraceDepth + 1us
             let (realSolution,t,surface) = findClosestIntersection ray surfaces
             let surfaceGeometry : Hitable = surface.Geometry
             if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f (PointForRay ray t)
             then
-                //let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t ((int)newTraceDepth)
                 let emittedShading = surface.Emitted
-                // let e = accEmitted + accScatter*emittedShading 
+                let e = accEmitted + accScatter*emittedShading 
                 let mcSamples = surface.SampleCount
-                let mutable shading = Vector3.Zero
+                let mutable totalShading = e/surface.MCNormalization
                 //TODO rewrite this ot make it tail recursive
                 for _ in 0..mcSamples-1 do
                     let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
-                    let s = accScatter*surface.BRDF*cosOfIncidence / surface.PDF
-                    shading <- shading + s*(rayTrace outRay newTraceDepth Vector3.Zero Vector3.One)
-                if mcSamples > 0 then
-                    shading <- (shading /(float32)mcSamples)
-                emittedShading + shading
+                    let shading = surface.BRDF*cosOfIncidence / surface.PDF
+                    let s = (accScatter*shading)/surface.MCNormalization
+                    totalShading <- totalShading + (rayTrace outRay newTraceDepth e s)
+                totalShading
             else 
                accEmitted + backgroundColor*accScatter
 
@@ -78,16 +76,15 @@ type Scene () =
             if writeToDepth then writeToDepthBuffer t px py
 
             let emittedShading = surface.Emitted
-            // let e = accEmitted + accScatter*emittedShading 
             let mcSamples = surface.SampleCount
-            let mutable shading = Vector3.Zero
+            let mutable totalShading = emittedShading/surface.MCNormalization
             for _ in 0..mcSamples-1 do
                 let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 0
-                let s = surface.BRDF*cosOfIncidence / surface.PDF
-                shading <- shading + s*(rayTrace outRay 1us Vector3.Zero Vector3.One)
-            if mcSamples > 0 then
-                shading <- (shading /(float32)mcSamples)
-            emittedShading + shading
+                let shading = surface.BRDF*cosOfIncidence / surface.PDF
+                let s = shading / surface.MCNormalization
+                totalShading <- totalShading + (rayTrace outRay 1us emittedShading s)
+            totalShading
+            
         else
             backgroundColor
 
