@@ -19,7 +19,7 @@ type Scene () =
 
     let width = 800
     let height = 640
-    let samples = 1
+    let samples = 2
     let maxTraceDepth = 5us
     let backgroundColor = Vector3.Zero
     // let frameBuffer = Array2D.create width height defaultColor
@@ -47,7 +47,7 @@ type Scene () =
     let rec rayTrace (ray : Ray) previousTraceDepth (accEmitted : Color) (accScatter :Color) =
         if previousTraceDepth > maxTraceDepth 
         then  
-            accEmitted + backgroundColor*accScatter
+            backgroundColor
         else
             let newTraceDepth = previousTraceDepth + 1us
             let (realSolution,t,surface) = findClosestIntersection ray surfaces
@@ -56,19 +56,17 @@ type Scene () =
             then
                 //let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t ((int)newTraceDepth)
                 let emittedShading = surface.Emitted
-                let e = accEmitted + accScatter*emittedShading 
+                // let e = accEmitted + accScatter*emittedShading 
                 let mcSamples = surface.SampleCount
                 let mutable shading = Vector3.Zero
+                //TODO rewrite this ot make it tail recursive
                 for _ in 0..mcSamples-1 do
                     let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
                     let s = accScatter*surface.BRDF*cosOfIncidence / surface.PDF
-                    shading <- shading + (rayTrace outRay newTraceDepth e s)
+                    shading <- shading + s*(rayTrace outRay newTraceDepth Vector3.Zero Vector3.One)
                 if mcSamples > 0 then
                     shading <- (shading /(float32)mcSamples)
-                e + shading
-                // match doesRayContribute with
-                //     | true -> (rayTrace outRay newTraceDepth e s)
-                //     | false -> emittedShading
+                emittedShading + shading
             else 
                accEmitted + backgroundColor*accScatter
 
@@ -79,11 +77,6 @@ type Scene () =
         if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay (PointForRay ray t) then
             if writeToDepth then writeToDepthBuffer t px py
 
-            // let (doesRayContribute,outRay,scatteredShading) = surface.Scatter ray t 0
-            // let emittedShading = surface.Emitted
-            // match doesRayContribute with
-            //     | true -> emittedShading + scatteredShading*(rayTrace outRay 1us Vector3.Zero Vector3.One)
-            //     | false -> emittedShading
             let emittedShading = surface.Emitted
             // let e = accEmitted + accScatter*emittedShading 
             let mcSamples = surface.SampleCount
@@ -91,7 +84,7 @@ type Scene () =
             for _ in 0..mcSamples-1 do
                 let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 0
                 let s = surface.BRDF*cosOfIncidence / surface.PDF
-                shading <- shading + (rayTrace outRay 1us Vector3.Zero s)
+                shading <- shading + s*(rayTrace outRay 1us Vector3.Zero Vector3.One)
             if mcSamples > 0 then
                 shading <- (shading /(float32)mcSamples)
             emittedShading + shading
