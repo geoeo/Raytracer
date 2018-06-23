@@ -14,13 +14,20 @@ let randomState = new Random()
         
 [<AbstractClass>]
 type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
-    abstract member Scatter: Ray -> LineParameter -> int -> bool*Ray*Raytracer.Material.Color
+    abstract member Scatter: Ray -> LineParameter -> int -> bool*Ray*Angle
     abstract member Emitted : Material.Color 
+    abstract member SampleCount : int
+    abstract member PDF : float32
+    abstract member BRDF : Raytracer.Material.Color
     member this.ID = id
     member this.Geometry = geometry
     member this.Material = material
-    default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),Vector3.UnitY)
+    // default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),Vector3.UnitY)
+    default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),1.0f)
     default this.Emitted = this.Material.Emmitance
+    default this.SampleCount = 0
+    default this.PDF = 1.0f
+    default this.BRDF = this.Material.Albedo
 
 //let ToSurface x = upcast x : Surface
 
@@ -42,6 +49,9 @@ let findClosestIntersection (ray : Ray) (surfaces : Surface array) =
 type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id,geometry,material)
 
+    override this.SampleCount = 3
+    override this.PDF = 1.0f / (2.0f * MathF.PI)
+    override this.BRDF = this.Material.Albedo / MathF.PI
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
@@ -49,6 +59,7 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
 
         //sampling hemisphere
         let rand_norm = RandomSampling.RandomInUnitHemisphere_Sync()
+        let cosOfIncidence = rand_norm.Y
         let mutable nb = Vector3.Zero
         let mutable nt = Vector3.Zero
         Henzai.Numerics.Geometry.CreateCoordinateSystemAroundNormal(&normal,&nt,&nb)
@@ -58,10 +69,11 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
 
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
-        let attenuation = this.Material.Albedo
-        // let attenuation = this.Material.Albedo / MathF.PI // TODO: Needed for true Rendering Eq. BRDF
-        let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
-        (true,outRay,attenuationDepthAdjusted)
+        //let attenuation = this.Material.Albedo
+        //let brdf = this.Material.Albedo / MathF.PI // TODO: Needed for true Rendering Eq. BRDF
+        //let brdfDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*brdf
+        // (true,outRay,brdfDepthAdjusted)
+        (true,outRay,cosOfIncidence)
 
 
 
@@ -72,6 +84,7 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
     member this.Reflect (incommingRay : Ray) (normalToSurface : Normal) 
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
 
+    override this.SampleCount = 1
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
@@ -90,8 +103,9 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    
         let attenuation = material.Albedo
         // let attenuation = material.Albedo / MathF.PI // TODO: Needed for true Rendering Eq. BRDF
-        let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
-        (true,outRay,attenuationDepthAdjusted)
+        // let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
+        // (true,outRay,attenuationDepthAdjusted)
+        (true,outRay,1.0f)
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
 type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Material, refractiveIndex : float32) =
@@ -114,6 +128,7 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
             (true, Vector3.Normalize(refracted))
         // total internal refleciton
         else (false, Vector3.Zero) 
+    override this.SampleCount = 1
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
 
         let attenuation = material.Albedo
@@ -142,10 +157,12 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         if randomFloat <= reflectProb 
         then 
             let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)
-            (true,reflectRay,attenuationDepthAdjusted)
+            // (true,reflectRay,attenuationDepthAdjusted)
+            (true,reflectRay,1.0f)
         else // refraction has to have been successful
             let refractRay = Ray(positionOnSurface,refrationDir)
-            (true,refractRay,attenuationDepthAdjusted)
+            // (true,refractRay,attenuationDepthAdjusted)
+            (true,refractRay,1.0f)
 
 
 
