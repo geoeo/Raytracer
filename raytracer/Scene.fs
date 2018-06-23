@@ -44,7 +44,7 @@ type Scene () =
         if t > maxFrameBufferDepth then 
             maxFrameBufferDepth <- t 
 
-    let rec rayTrace (ray : Ray) previousTraceDepth (accEmitted : Color) (accScatter :Color) =
+    let rec rayTrace previousTraceDepth ((ray : Ray) , (accEmitted : Color) , (accScatter :Color)) =
         if previousTraceDepth > maxTraceDepth 
         then  
             accEmitted + backgroundColor*accScatter
@@ -57,14 +57,40 @@ type Scene () =
                 let emittedShading = surface.Emitted
                 let e = accEmitted + accScatter*emittedShading 
                 let mcSamples = surface.SampleCount
-                let mutable totalShading = e/surface.MCNormalization
-                //TODO rewrite this ot make it tail recursive
-                for _ in 0..mcSamples-1 do
-                    let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
-                    let shading = surface.BRDF*cosOfIncidence / surface.PDF
-                    let s = (accScatter*shading)/surface.MCNormalization
-                    totalShading <- totalShading + (rayTrace outRay newTraceDepth e s)
-                totalShading
+                let eMCAdjusted = e / surface.MCNormalization
+                
+                // let mutable totalShading = e/surface.MCNormalization
+                //TODO rewrite this to make it tail recursive
+                // for _ in 0..mcSamples-1 do
+                //     let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
+                //     let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
+                //     let s = accScatter*shading
+                //     totalShading <- totalShading + (rayTrace newTraceDepth (outRay , e , s))
+                // totalShading
+
+                // let shadingSamples 
+                //     = seq { 
+                //         for _ in 1 .. mcSamples do                           
+                //             let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
+                //             let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
+                //             let s = accScatter*shading
+                //             yield (outRay,e,s)                           
+                //     }
+                let shadingSamples = 
+                    [|
+                        for _ in 1..mcSamples do 
+                            let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
+                            let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
+                            let s = accScatter*shading
+                            yield (outRay,e,s)    
+                    |]
+                if Array.isEmpty shadingSamples then 
+                    e
+                else
+                    Array.sumBy (fun x -> eMCAdjusted + rayTrace newTraceDepth x) shadingSamples
+                    // shadingSamples |> Seq.map (fun x -> eMCAdjusted + rayTrace newTraceDepth x)  |> Seq.sum  
+
+
             else 
                accEmitted + backgroundColor*accScatter
 
@@ -80,9 +106,8 @@ type Scene () =
             let mutable totalShading = emittedShading/surface.MCNormalization
             for _ in 0..mcSamples-1 do
                 let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 0
-                let shading = surface.BRDF*cosOfIncidence / surface.PDF
-                let s = shading / surface.MCNormalization
-                totalShading <- totalShading + (rayTrace outRay 1us emittedShading s)
+                let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
+                totalShading <- totalShading + (rayTrace 1us (outRay , emittedShading , shading))
             totalShading
             
         else
