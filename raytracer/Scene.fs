@@ -17,7 +17,7 @@ type Scene () =
 
     let width = 800
     let height = 640
-    let samples = 4
+    let samples = 16
     // let frameBuffer = Array2D.create width height defaultColor
     let frameBuffer = Array2D.create width height Vector4.Zero
     let depthBuffer = Array2D.create width height System.Single.MaxValue

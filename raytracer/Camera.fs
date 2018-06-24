@@ -5,20 +5,20 @@ open System.Numerics
 open Raytracer.Numerics
 open Henzai.Numerics
 
-let pertrube px py = 
+let pertrube px py width height = 
     let randVec = RandomSampling.RandomInUnitSphere_Sync()
-    // let xOff = randVec.X/((float32)(width))
-    // let yOff = randVec.Y/((float32)(height))
+    let xOff = randVec.X/((float32)(width))
+    let yOff = randVec.Y/((float32)(height))
     //TODO: investigate artefacts: Maybe a convergence issue
-    let xOff = randVec.X/10.0f
-    let yOff = randVec.Y/10.0f
+    // let xOff = randVec.X/10.0f
+    // let yOff = randVec.Y/10.0f
     // let xOff = randVec.X/2.0f
     // let yOff = randVec.Y/2.0f
     (px + xOff, py+yOff)
 
 // ndc is [0,1] from top left
 let PixelToNDC px py width height =
-    let px_pert , py_pert = pertrube (px + 0.5f) (py + 0.5f)
+    let px_pert , py_pert = pertrube (px + 0.5f) (py + 0.5f) width height
     px_pert/width , py_pert/height
 
 // screen space is [-1,1] from top left
