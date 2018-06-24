@@ -6,29 +6,46 @@ open System.IO
 open System
 open System.Numerics
 open Raytracer.Camera
-open Raytracer.Surface
 open Raytracer.Geometry
 open Raytracer.Material
 open Raytracer.Numerics
+open Raytracer.Surface
 open Raytracer.SceneDefinitions
-// open Henzai.Numerics
 open BenchmarkDotNet.Attributes
 
+//TODO:Use Refactor this
+let inline setUpMonteCarlo (surface : Surface) (ray : Ray) (t : LineParameter) (accEmitted : Color) (accScatter :Color) (currentTraceDepth : uint32) =
 
+        let emittedShading = surface.Emitted
+        let e = accEmitted + accScatter*emittedShading 
+        let mcSamples = surface.SampleCount
+        //let eMCAdjusted = e / surface.MCNormalization
+
+        let rayTraceParameters = 
+            [|
+                for _ in 1..mcSamples do
+                    let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)currentTraceDepth)
+                    let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
+                    let s = accScatter*shading
+                    yield (currentTraceDepth, outRay , e , s)
+            |]
+        rayTraceParameters 
+
+ 
 type Scene () =
 
     let width = 800
     let height = 640
     let samples = 4
-    let maxTraceDepth = 5us
-    let backgroundColor = Vector3.Zero
     // let frameBuffer = Array2D.create width height defaultColor
     let frameBuffer = Array2D.create width height Vector4.Zero
     let depthBuffer = Array2D.create width height System.Single.MaxValue
     let mutable maxFrameBufferDepth = 0.0f
+    let maxTraceDepth = 5us
+    let backgroundColor = Vector3.Zero
+    let surfaces : (Surface array) = scene_spheres |> Array.ofList
 
         // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
-    let surfaces : (Surface array) = scene_spheres |> Array.ofList
 
     let cameraOriginWS = Vector3(-3.0f,6.0f,15.0f)
     let lookAt = Vector3(-1.0f,1.0f,-10.0f)
@@ -43,6 +60,7 @@ type Scene () =
         depthBuffer.[px,py] <- t
         if t > maxFrameBufferDepth then 
             maxFrameBufferDepth <- t 
+
 
     let rec rayTrace previousTraceDepth ((ray : Ray) , (accEmitted : Color) , (accScatter :Color)) =
         if previousTraceDepth > maxTraceDepth 
@@ -66,10 +84,10 @@ type Scene () =
                     let s = accScatter*shading
                     totalShading <- totalShading + (rayTrace newTraceDepth (outRay , e , s))
                 totalShading
-             
+                
 
             else 
-               accEmitted + backgroundColor*accScatter
+                accEmitted + backgroundColor*accScatter
 
 
     let rayTraceBase (ray : Ray) px py iteration = 
@@ -86,12 +104,11 @@ type Scene () =
                 let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 0
                 let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
                 totalShading <- totalShading + (rayTrace 1us (outRay , emittedShading , shading)  )
-                // let rayTrace = (rayTraceAsync (1us ,outRay , emittedShading , shading)) |> Async.RunSynchronously
-                // totalShading <- totalShading + rayTrace
             totalShading
             
         else
-            backgroundColor
+            backgroundColor 
+
 
     let rec rayTraceAsync (previousTraceDepth , (ray : Ray) , (accEmitted : Color) , (accScatter :Color)) =
         async {
@@ -108,7 +125,6 @@ type Scene () =
                     let e = accEmitted + accScatter*emittedShading 
                     let mcSamples = surface.SampleCount
 
-                    let eMCAdjusted = e / surface.MCNormalization
                     let rayTraceParameters = 
                         [|
                             for _ in 1..mcSamples do
@@ -120,12 +136,13 @@ type Scene () =
                     if Array.isEmpty rayTraceParameters then
                         return e
                     else 
+                        let eMCAdjusted = e / surface.MCNormalization
                         let rayTracesParallel = rayTraceParameters |> Array.map rayTraceAsync |> Async.Parallel   
                         let! rayTraces = rayTracesParallel 
                         return Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
 
                 else 
-                   return accEmitted + backgroundColor*accScatter
+                    return accEmitted + backgroundColor*accScatter
         }
             
     let rayTraceBaseAsync (ray : Ray) px py iteration = 
@@ -138,19 +155,18 @@ type Scene () =
 
                 let emittedShading = surface.Emitted
                 let mcSamples = surface.SampleCount
-
-                let eMCAdjusted = emittedShading / surface.MCNormalization
                 let rayTraceParameters = 
                     [|
                         for _ in 1..mcSamples do
                             let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 1
                             let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
                             let s = shading
-                            yield (1us, outRay , eMCAdjusted , s)
+                            yield (1us, outRay , emittedShading , s)
                     |]   
                 if Array.isEmpty rayTraceParameters then
                     return emittedShading
                 else 
+                    let eMCAdjusted = emittedShading / surface.MCNormalization
                     let rayTracesParallel = rayTraceParameters |> Array.map rayTraceAsync |> Async.Parallel   
                     let! rayTraces = rayTracesParallel 
                     return Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
@@ -174,7 +190,6 @@ type Scene () =
         //Gamma correct TODO: refactor
         frameBuffer.[px,py] <- Vector4(Vector3.SquareRoot(avgColor),1.0f)
         // frameBuffer.[px,py] <- Vector4(avgColor,1.0f)
-
 
     [<Benchmark>]
     member self.renderScene () =
