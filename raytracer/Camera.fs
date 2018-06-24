@@ -3,10 +3,23 @@ module Raytracer.Camera
 open System
 open System.Numerics
 open Raytracer.Numerics
+open Henzai.Numerics
+
+let pertrube px py = 
+    let randVec = RandomSampling.RandomInUnitSphere_Sync()
+    // let xOff = randVec.X/((float32)(width))
+    // let yOff = randVec.Y/((float32)(height))
+    //TODO: investigate artefacts: Maybe a convergence issue
+    let xOff = randVec.X/10.0f
+    let yOff = randVec.Y/10.0f
+    // let xOff = randVec.X/2.0f
+    // let yOff = randVec.Y/2.0f
+    (px + xOff, py+yOff)
 
 // ndc is [0,1] from top left
-let PixelToNDC x y width height =
-    (x + 0.5f)/width , (y+0.5f)/height
+let PixelToNDC px py width height =
+    let px_pert , py_pert = pertrube (px + 0.5f) (py + 0.5f)
+    px_pert/width , py_pert/height
 
 // screen space is [-1,1] from top left
 let NDCToScreen (x_ndc , y_ndc) = 2.0f*x_ndc-1.0f , 1.0f-2.0f*y_ndc

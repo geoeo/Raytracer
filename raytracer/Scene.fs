@@ -11,7 +11,7 @@ open Raytracer.Geometry
 open Raytracer.Material
 open Raytracer.Numerics
 open Raytracer.SceneDefinitions
-open Henzai.Numerics
+// open Henzai.Numerics
 open BenchmarkDotNet.Attributes
 
 
@@ -72,12 +72,12 @@ type Scene () =
                accEmitted + backgroundColor*accScatter
 
 
-    let rayTraceBase (ray : Ray) px py writeToDepth = 
+    let rayTraceBase (ray : Ray) px py iteration = 
         let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
         let (realSolution,t,surface) = findClosestIntersection ray surfaces
         let surfaceGeometry = surface.Geometry
         if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay (PointForRay ray t) then
-            if writeToDepth then writeToDepthBuffer t px py
+            if iteration = 1 then writeToDepthBuffer t px py
 
             let emittedShading = surface.Emitted
             let mcSamples = surface.SampleCount
@@ -128,13 +128,13 @@ type Scene () =
                    return accEmitted + backgroundColor*accScatter
         }
             
-    let rayTraceBaseAsync (ray : Ray) px py writeToDepth = 
+    let rayTraceBaseAsync (ray : Ray) px py iteration = 
         async {
             let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
             let (realSolution,t,surface) = findClosestIntersection ray surfaces
             let surfaceGeometry = surface.Geometry
             if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay (PointForRay ray t) then
-                if writeToDepth then writeToDepthBuffer t px py
+                if iteration = 1 then writeToDepthBuffer t px py
 
                 let emittedShading = surface.Emitted
                 let mcSamples = surface.SampleCount
@@ -152,33 +152,16 @@ type Scene () =
 
         }
 
-
-
-
-    let pertrube px py = 
-        let randVec = RandomSampling.RandomInUnitSphere_Sync()
-        // let xOff = randVec.X/((float32)(width))
-        // let yOff = randVec.Y/((float32)(height))
-        //TODO: investigate artefacts 
-        let xOff = randVec.X/10.0f
-        let yOff = randVec.Y/10.0f
-        // let xOff = randVec.X/2.0f
-        // let yOff = randVec.Y/2.0f
-        ((float32)px + xOff, (float32)py+yOff)
-        
     let renderPass px py = 
-        let (pxOffset,pyOffset) = pertrube px py
+        //let (pxOffset,pyOffset) = pertrube px py
         let dirCS = 
-            RayDirection (PixelToCamera pxOffset pyOffset (float32 width) (float32 height) fov)
+            RayDirection (PixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) fov)
         let rot = Rotation cameraWS
         let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
         let ray = Ray(cameraWS.Translation, dirWS)
-        //TODO: set depth write flag with counter
-        let color = rayTraceBase ray px py true
-        // let colorSamples = [|for _ in 1..(samples-1) -> async {return rayTraceBase ray px py false}|]
-        let colorSamples = [|for _ in 1..(samples-1) -> rayTraceBaseAsync ray px py false|]
+        let colorSamples = [|for i in 1..samples -> rayTraceBaseAsync ray px py i|]
         let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
-        let avgColor = if Array.isEmpty colorSamples then color else (Array.reduce (fun acc c -> acc+c) colors + color)/(float32)samples
+        let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
         //printfn "Completed Ray for pixels (%i,%i)" px py
         //async {printfn "Completed Ray for pixels (%i,%i)" px py} |> Async.StartAsTask |> ignore
         //Gamma correct TODO: refactor
