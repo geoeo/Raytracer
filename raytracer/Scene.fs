@@ -18,6 +18,8 @@ type Scene () =
     let width = 800
     let height = 640
     let samples = 16
+    let batchSize = 4
+
     // let frameBuffer = Array2D.create width height defaultColor
     let frameBuffer = Array2D.create width height Vector4.Zero
     let depthBuffer = Array2D.create width height System.Single.MaxValue
@@ -95,12 +97,16 @@ type Scene () =
         let ray = Ray(cameraWS.Translation, dirWS)
         // V1 - Slow (A lot of GC because of async blocks!)
         //let colorSamples = [|for i in 1..samples -> rayTraceBaseAsync ray px py i|]
-        //let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
+        //let colors =  colorSamples |> Async. Parallel |> Async.RunSynchronously
         //let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
         //V2 - Fastest
-        let colorSamples = [|for i in 1..samples -> async {return rayTraceBase ray px py i}|]
-        let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
-        let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
+        let colorSamples = Array.create samples Vector3.Zero
+        let batches = samples / batchSize
+        for batchIndex in 0..batches-1 do
+            let colorSamplesBatch = [|for i in 1..batchSize -> async {return rayTraceBase ray px py i}|]
+            let colorsBatch =  colorSamplesBatch |> Async.Parallel |> Async.RunSynchronously
+            Array.blit colorsBatch 0 colorSamples (batchIndex*batchSize) batchSize 
+        let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colorSamples)/(float32)samples
         //V3 Slowest
         //let colors = [|for i in 1..samples -> rayTraceBaseAsync ray px py i |> Async.RunSynchronously|]
         //let avgColor = if Array.isEmpty colors then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
