@@ -50,7 +50,7 @@ let findClosestIntersection (ray : Ray) (surfaces : Surface array) =
 type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id,geometry,material)
 
-    override this.SampleCount = 3
+    override this.SampleCount = 4
     override this.PDF = 1.0f / (2.0f * MathF.PI)
     override this.BRDF = this.Material.Albedo / MathF.PI
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =

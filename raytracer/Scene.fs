@@ -13,14 +13,13 @@ open Raytracer.Numerics
 open Raytracer.SceneDefinitions
 open Henzai.Numerics
 open BenchmarkDotNet.Attributes
-open System.Linq
 
 
 type Scene () =
 
     let width = 800
     let height = 640
-    let samples = 1
+    let samples = 4
     let maxTraceDepth = 5us
     let backgroundColor = Vector3.Zero
     // let frameBuffer = Array2D.create width height defaultColor
@@ -61,84 +60,17 @@ type Scene () =
                 
                 //TODO rewrite this to make it tail recursive
                 let mutable totalShading = e/surface.MCNormalization
-                for _ in 0..mcSamples-1 do
+                for _ in 1..mcSamples do
                     let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
                     let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
                     let s = accScatter*shading
                     totalShading <- totalShading + (rayTrace newTraceDepth (outRay , e , s))
                 totalShading
+             
+
             else 
                accEmitted + backgroundColor*accScatter
 
-    let rec rayTraceAsync previousTraceDepth ((ray : Ray) , (accEmitted : Color) , (accScatter :Color)) =
-        async{
-            let context = System.Threading.SynchronizationContext.Current
-            do! Async.SwitchToThreadPool()
-            if previousTraceDepth > maxTraceDepth 
-            then  
-                do! Async.SwitchToContext(context)
-                return! async {return accEmitted + backgroundColor*accScatter}
-            else
-                let newTraceDepth = previousTraceDepth + 1us
-                let (realSolution,t,surface) = findClosestIntersection ray surfaces
-                let surfaceGeometry : Hitable = surface.Geometry
-                if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f (PointForRay ray t)
-                then
-                    let emittedShading = surface.Emitted
-                    let e = accEmitted + accScatter*emittedShading 
-                    let mcSamples = surface.SampleCount
-                    let eMCAdjusted = e / surface.MCNormalization
-                
-                    //TODO rewrite this to make it tail recursive
-                    //let mutable totalShading = e/surface.MCNormalization
-                    //for _ in 0..mcSamples-1 do
-                    //    let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
-                    //    let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
-                    //    let s = accScatter*shading
-                    //    totalShading <- totalShading + (rayTrace newTraceDepth (outRay , e , s))
-                    //totalShading
-
-                    //let shadingSamples 
-                    //    = seq { 
-                    //        for _ in 1 .. mcSamples do                           
-                    //            let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
-                    //            let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
-                    //            let s = accScatter*shading
-                    //            yield (outRay,e,s)                           
-                    //    }
-
-                    let shadingSamples 
-                        = [| 
-                            for _ in 1 .. mcSamples do                           
-                                let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
-                                let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
-                                let s = accScatter*shading
-                                yield (outRay,e,s)                           
-                        |]
-
-                    let shadingSamplesAsync = Array.map (fun x -> async{return! rayTraceAsync newTraceDepth x}) shadingSamples
-                    //let shadingSamplesAsync = 
-                    //    [|
-                    //        for _ in 1..mcSamples -> async {
-                    //                let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
-                    //                let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
-                    //                let s = accScatter*shading
-                    //                return rayTrace newTraceDepth (outRay,e,s)
-                    //            }|]
-                    if Array.isEmpty shadingSamples then 
-                        do! Async.SwitchToContext(context)
-                        return! async { return e }
-                    else
-                        do! Async.SwitchToContext(context)
-                        let shadingSamplesSync = shadingSamplesAsync |> Async.Parallel |> Async.RunSynchronously
-                        return!  async {return Array.sumBy (fun x -> eMCAdjusted + x) shadingSamplesSync}
-                        // shadingSamples |> Seq.map (fun x -> eMCAdjusted + rayTrace newTraceDepth x)  |> Seq.sum  
-
-
-                else 
-                   do! Async.SwitchToContext(context)
-                   return! async {return accEmitted + backgroundColor*accScatter}
-            }
 
     let rayTraceBase (ray : Ray) px py writeToDepth = 
         let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
@@ -154,10 +86,74 @@ type Scene () =
                 let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 0
                 let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
                 totalShading <- totalShading + (rayTrace 1us (outRay , emittedShading , shading)  )
+                // let rayTrace = (rayTraceAsync (1us ,outRay , emittedShading , shading)) |> Async.RunSynchronously
+                // totalShading <- totalShading + rayTrace
             totalShading
             
         else
             backgroundColor
+
+    let rec rayTraceAsync (previousTraceDepth , (ray : Ray) , (accEmitted : Color) , (accScatter :Color)) =
+        async {
+            if previousTraceDepth > maxTraceDepth 
+            then  
+                return accEmitted + backgroundColor*accScatter
+            else
+                let newTraceDepth = previousTraceDepth + 1us
+                let (realSolution,t,surface) = findClosestIntersection ray surfaces
+                let surfaceGeometry : Hitable = surface.Geometry
+                if surfaceGeometry.IntersectionAcceptable realSolution t 1.0f (PointForRay ray t)
+                then
+                    let emittedShading = surface.Emitted
+                    let e = accEmitted + accScatter*emittedShading 
+                    let mcSamples = surface.SampleCount
+
+                    let eMCAdjusted = e / surface.MCNormalization
+                    let rayTraceParameters = 
+                        [|
+                            for _ in 1..mcSamples do
+                                let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)
+                                let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
+                                let s = accScatter*shading
+                                yield (newTraceDepth, outRay , e , s)
+                        |]   
+                    if Array.isEmpty rayTraceParameters then
+                        return e
+                    else 
+                        let rayTracesParallel = rayTraceParameters |> Array.map rayTraceAsync |> Async.Parallel   
+                        let! rayTraces = rayTracesParallel 
+                        return Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
+
+                else 
+                   return accEmitted + backgroundColor*accScatter
+        }
+            
+    let rayTraceBaseAsync (ray : Ray) px py writeToDepth = 
+        async {
+            let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
+            let (realSolution,t,surface) = findClosestIntersection ray surfaces
+            let surfaceGeometry = surface.Geometry
+            if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay (PointForRay ray t) then
+                if writeToDepth then writeToDepthBuffer t px py
+
+                let emittedShading = surface.Emitted
+                let mcSamples = surface.SampleCount
+                let mutable totalShading = emittedShading/surface.MCNormalization
+                //TODO: Maybe refactor this loop aswell
+                for _ in 0..mcSamples-1 do
+                    let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 0
+                    let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
+                    let! rayTrace = (rayTraceAsync (1us ,outRay , emittedShading , shading))
+                    totalShading <- totalShading + rayTrace
+                return totalShading
+                
+            else
+                return backgroundColor
+
+        }
+
+
+
 
     let pertrube px py = 
         let randVec = RandomSampling.RandomInUnitSphere_Sync()
@@ -166,6 +162,8 @@ type Scene () =
         //TODO: investigate artefacts 
         let xOff = randVec.X/10.0f
         let yOff = randVec.Y/10.0f
+        // let xOff = randVec.X/2.0f
+        // let yOff = randVec.Y/2.0f
         ((float32)px + xOff, (float32)py+yOff)
         
     let renderPass px py = 
@@ -175,8 +173,10 @@ type Scene () =
         let rot = Rotation cameraWS
         let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
         let ray = Ray(cameraWS.Translation, dirWS)
+        //TODO: set depth write flag with counter
         let color = rayTraceBase ray px py true
-        let colorSamples = [|for _ in 1..(samples-1) -> async {return rayTraceBase ray px py false}|]
+        // let colorSamples = [|for _ in 1..(samples-1) -> async {return rayTraceBase ray px py false}|]
+        let colorSamples = [|for _ in 1..(samples-1) -> rayTraceBaseAsync ray px py false|]
         let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
         let avgColor = if Array.isEmpty colorSamples then color else (Array.reduce (fun acc c -> acc+c) colors + color)/(float32)samples
         //printfn "Completed Ray for pixels (%i,%i)" px py

@@ -1,5 +1,4 @@
-﻿open System
-open Raytracer.Scene
+﻿open Raytracer.Scene
 open BenchmarkDotNet.Running
 
 
