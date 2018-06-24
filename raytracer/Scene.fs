@@ -85,7 +85,6 @@ type Scene () =
                     totalShading <- totalShading + (rayTrace newTraceDepth (outRay , e , s))
                 totalShading
                 
-
             else 
                 accEmitted + backgroundColor*accScatter
 
@@ -182,9 +181,17 @@ type Scene () =
         let rot = Rotation cameraWS
         let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
         let ray = Ray(cameraWS.Translation, dirWS)
-        let colorSamples = [|for i in 1..samples -> rayTraceBaseAsync ray px py i|]
+        // V1 - Slow (A lot of GC!)
+        //let colorSamples = [|for i in 1..samples -> rayTraceBaseAsync ray px py i|]
+        //let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
+        //let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
+        //V2 - Fastest
+        let colorSamples = [|for i in 1..samples -> async {return rayTraceBase ray px py i}|]
         let colors =  colorSamples |> Async.Parallel |> Async.RunSynchronously
         let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
+        //V3 Slowest
+        //let colors = [|for i in 1..samples -> rayTraceBaseAsync ray px py i |> Async.RunSynchronously|]
+        //let avgColor = if Array.isEmpty colors then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
         //printfn "Completed Ray for pixels (%i,%i)" px py
         //async {printfn "Completed Ray for pixels (%i,%i)" px py} |> Async.StartAsTask |> ignore
         //Gamma correct TODO: refactor
