@@ -138,14 +138,22 @@ type Scene () =
 
                 let emittedShading = surface.Emitted
                 let mcSamples = surface.SampleCount
-                let mutable totalShading = emittedShading/surface.MCNormalization
-                //TODO: Maybe refactor this loop aswell
-                for _ in 0..mcSamples-1 do
-                    let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 0
-                    let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
-                    let! rayTrace = (rayTraceAsync (1us ,outRay , emittedShading , shading))
-                    totalShading <- totalShading + rayTrace
-                return totalShading
+
+                let eMCAdjusted = emittedShading / surface.MCNormalization
+                let rayTraceParameters = 
+                    [|
+                        for _ in 1..mcSamples do
+                            let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t 1
+                            let shading = surface.BRDF*cosOfIncidence / (surface.PDF*surface.MCNormalization)
+                            let s = shading
+                            yield (1us, outRay , eMCAdjusted , s)
+                    |]   
+                if Array.isEmpty rayTraceParameters then
+                    return emittedShading
+                else 
+                    let rayTracesParallel = rayTraceParameters |> Array.map rayTraceAsync |> Async.Parallel   
+                    let! rayTraces = rayTracesParallel 
+                    return Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
                 
             else
                 return backgroundColor
@@ -153,7 +161,6 @@ type Scene () =
         }
 
     let renderPass px py = 
-        //let (pxOffset,pyOffset) = pertrube px py
         let dirCS = 
             RayDirection (PixelToCamera (float32 px) (float32 py) (float32 width) (float32 height) fov)
         let rot = Rotation cameraWS
