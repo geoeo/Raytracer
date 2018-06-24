@@ -87,6 +87,7 @@
 
                 
 //TODO rewrite this to make it tail recursive
+// let mcSamples = surface.SampleCount
 //let mutable totalShading = e/surface.MCNormalization
 // for _ in 1..mcSamples do
 //     let (doesRayContribute,outRay,cosOfIncidence) = surface.Scatter ray t ((int)newTraceDepth)

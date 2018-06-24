@@ -19,16 +19,24 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
     abstract member SampleCount : int
     abstract member PDF : float32
     abstract member BRDF : Raytracer.Material.Color
+    abstract member GenerateSamples : Ray -> LineParameter -> int -> (Ray* Material.Color)[]
     member this.ID = id
     member this.Geometry = geometry
     member this.Material = material
     member this.MCNormalization = MathF.Max((float32)this.SampleCount, 1.0f)
-    // default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),Vector3.UnitY)
+
     default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),1.0f)
     default this.Emitted = this.Material.Emmitance
     default this.SampleCount = 0
     default this.PDF = 1.0f
     default this.BRDF = this.Material.Albedo
+    default this.GenerateSamples (incommingRay : Ray) (t : LineParameter) (depthLevel : int) = 
+        [|
+            for _ in 1..this.SampleCount do
+                let (doesRayContribute,outRay,cosOfIncidence) = this.Scatter incommingRay t (depthLevel)
+                let shading : Material.Color = this.BRDF*cosOfIncidence / (this.PDF*this.MCNormalization)
+                yield (outRay , shading)
+        |]
 
 //let ToSurface x = upcast x : Surface
 
