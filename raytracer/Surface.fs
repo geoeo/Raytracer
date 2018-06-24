@@ -78,10 +78,6 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
 
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
-        //let attenuation = this.Material.Albedo
-        //let brdf = this.Material.Albedo / MathF.PI // TODO: Needed for true Rendering Eq. BRDF
-        //let brdfDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*brdf
-        // (true,outRay,brdfDepthAdjusted)
         (true,outRay,cosOfIncidence)
 
 
@@ -110,10 +106,6 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
 
         let outDir = Vector3.Normalize(this.Reflect incommingRay modifiedNormal)
         let outRay =  Ray(positionOnSurface,outDir,this.ID)    
-        let attenuation = material.Albedo
-        // let attenuation = material.Albedo / MathF.PI // TODO: Needed for true Rendering Eq. BRDF
-        // let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
-        // (true,outRay,attenuationDepthAdjusted)
         (true,outRay,1.0f)
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
@@ -138,12 +130,10 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         // total internal refleciton
         else (false, Vector3.Zero) 
     override this.SampleCount = 1
-    override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
-
-        let attenuation = material.Albedo
-        // let attenuation = material.Albedo/MathF.PI // TODO: Needed for true Rendering Eq. BRDF
-        let attenuationDepthAdjusted = MathF.Pow(0.95f,(float32)depthLevel)*attenuation
-
+    ///<summary>
+    /// Returns: (Reflect Probability,intersection Position,Reflection Dir, Refraction Dir)
+    /// </summary>
+    member this.CalcFresnel (incommingRay : Ray) (t : LineParameter) (depthLevel : int) = 
         let positionOnSurface = incommingRay.Origin + t*incommingRay.Direction
         let normal = Vector3.Normalize(this.Geometry.NormalForSurfacePoint positionOnSurface)
         let reflectDir = Vector3.Normalize(this.Reflect incommingRay normal)
@@ -162,6 +152,10 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         
         //Use schlick if refraction was successful
         let reflectProb = if refracted then this.SchlickApprx cos_incidence incidenceIndex transmissionIndex  else 1.0f
+        (reflectProb , positionOnSurface, reflectDir, refrationDir)
+
+    override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
+        let (reflectProb, positionOnSurface, reflectDir, refractionDir) = this.CalcFresnel incommingRay t depthLevel
         let randomFloat = RandomSampling.RandomFloat_Sync()
         if randomFloat <= reflectProb 
         then 
@@ -169,9 +163,19 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
             // (true,reflectRay,attenuationDepthAdjusted)
             (true,reflectRay,1.0f)
         else // refraction has to have been successful
-            let refractRay = Ray(positionOnSurface,refrationDir)
+            let refractRay = Ray(positionOnSurface,refractionDir)
             // (true,refractRay,attenuationDepthAdjusted)
             (true,refractRay,1.0f)
+    override this.GenerateSamples (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
+        let (reflectProb, positionOnSurface, reflectDir, refractionDir) = this.CalcFresnel incommingRay t depthLevel
+        let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)
+        let reflectShading : Material.Color = this.BRDF*reflectProb // / (this.PDF*this.MCNormalization)
+        if reflectProb = 1.0f then //TODO: Maybe round
+            [|(reflectRay,reflectShading)|]
+        else
+            let refractRay = Ray(positionOnSurface,refractionDir)
+            let refractShading : Material.Color = this.BRDF*(1.0f - reflectProb) // / (this.PDF*this.MCNormalization)
+            [|(reflectRay,reflectShading);(refractRay, refractShading)|]
 
 
 
@@ -186,9 +190,3 @@ let SurfaceWithId (surfaces : Surface list) (id : ID) =
 
 let SurfacesToGeometry (surfaces : Surface list) =
     List.map (fun (x : Surface) -> x.Geometry) surfaces
-
-
-
-
-
-

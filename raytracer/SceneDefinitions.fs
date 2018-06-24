@@ -95,6 +95,13 @@ let spheres_caustics : Surface list
         Dielectric(assignIDAndIncrement id,Sphere(Vector3(-5.1f,-2.0f,-11.0f),3.0f),Material(Rgba32.White),1.5f)
       ]
 
+let spheres_lamb_dial : Surface list
+    = [
+        Lambertian(assignIDAndIncrement id,Sphere(Vector3(4.0f,-1.0f,-15.0f),3.5f), Material(Rgba32.RoyalBlue));
+        Lambertian(assignIDAndIncrement id,Sphere(Vector3(2.0f,-4.5f,-7.0f),1.5f), Material(Rgba32.Red));
+        Lambertian(assignIDAndIncrement id,Sphere(Vector3(6.0f,-4.5f,-7.0f),1.5f), Material(Rgba32.DarkGreen));
+        Dielectric(assignIDAndIncrement id,Sphere(Vector3(-5.1f,-2.0f,-11.0f),3.0f),Material(Rgba32.White),1.5f)
+      ]
 let planes : Surface list = [
     Lambertian(assignIDAndIncrement id,Plane(System.Numerics.Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)),None,None,None),Material(Vector3(1.0f,1.0f,1.0f)));
     Lambertian(assignIDAndIncrement id,Plane(new System.Numerics.Plane((SurfaceNormal 0.0f 0.0f -1.0f),17.0f),Some ((Vector3(0.0f,0.0f,17.0f))),Some 30.0f,Some 10.0f), Material(Rgba32.White));
@@ -112,6 +119,7 @@ let planes_submission : Surface list = [
 let planes_simple : Surface list = [
     Lambertian(assignIDAndIncrement id,Plane(System.Numerics.Plane.CreateFromVertices(Vector3(-1.0f,-6.0f,0.0f),Vector3(1.0f,-6.0f,0.0f),Vector3(0.0f,-6.0f,-1.0f)),None,None,None),Material(Vector3(1.0f,1.0f,1.0f)));
     Lambertian(assignIDAndIncrement id,Plane(new System.Numerics.Plane((SurfaceNormal 0.0f 0.0f -1.0f),17.0f),Some ((Vector3(0.0f,0.0f,17.0f))),Some 30.0f,Some 10.0f), Material(Rgba32.White));
+    Metal(assignIDAndIncrement id, Plane(new System.Numerics.Plane((SurfaceNormal -1.0f 0.0f 1.0f),15.0f),Some ((Vector3(15.0f,3.0f,-15.0f))),Some 10.0f,Some 6.0f), Material(Rgba32.AntiqueWhite),0.00f)
     ]
 
-let scene_spheres = List.concat [spheres_simple;planes_simple;lights]
+let scene_spheres = List.concat [spheres_lamb_dial;planes_simple;lights]
