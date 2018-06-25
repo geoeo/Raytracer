@@ -61,13 +61,18 @@ type Scene () =
             then
                 let emittedRadiance = surface.Emitted
                 let e = accEmitted + accScatter*emittedRadiance 
-                let raySamples = surface.GenerateSamples ray t ((int)currentTraceDepth)
-                if Array.isEmpty raySamples then
+                let (validSamples,raySamples) = surface.GenerateSamples ray t ((int)currentTraceDepth) surface.SamplesArray
+                if validSamples = 0 then
                     e
                 else 
-                    let eMCAdjusted = e / surface.MCNormalization
-                    let rayTraces = raySamples  |>  Array.map ((fun (o ,s) -> (currentTraceDepth,o,e,accScatter*s) ) >> rayTrace) 
-                    Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
+                    //let eMCAdjusted = e / surface.MCNormalization
+                    //let rayTraces = raySamples  |>  Array.map ((fun (o ,s) -> (currentTraceDepth,o,e,accScatter*s) ) >> rayTrace) 
+                    //Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
+                    let mutable totalLight = emittedRadiance / (float32)validSamples
+                    for i in 0..validSamples-1 do
+                        let (ray,shading) = raySamples.[i]
+                        totalLight <- totalLight + rayTrace (currentTraceDepth,ray,emittedRadiance,accScatter*shading)
+                    totalLight
                 
             else 
                 accEmitted + backgroundColor*accScatter
@@ -82,13 +87,18 @@ type Scene () =
 
             let currentTraceDepth = 0us
             let emittedRadiance = surface.Emitted
-            let raySamples = surface.GenerateSamples ray t ((int)currentTraceDepth)
-            if Array.isEmpty raySamples then
+            let (validSamples,raySamples) = surface.GenerateSamples ray t ((int)currentTraceDepth) surface.SamplesArray
+            if validSamples = 0 then
                 emittedRadiance
             else 
-                let eMCAdjusted = emittedRadiance / surface.MCNormalization
-                let rayTraces = raySamples  |>  Array.map ((fun (o ,s) -> (currentTraceDepth,o,emittedRadiance,s) ) >> rayTrace) 
-                Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
+                //let eMCAdjusted = emittedRadiance / surface.MCNormalization
+                //let rayTraces = raySamples  |>  Array.map ((fun (o ,s) -> (currentTraceDepth,o,emittedRadiance,s) ) >> rayTrace) 
+                //Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
+                let mutable totalLight = emittedRadiance / (float32)validSamples
+                for i in 0..validSamples-1 do
+                    let (ray,shading) = raySamples.[i]
+                    totalLight <- totalLight + rayTrace (currentTraceDepth,ray,emittedRadiance,shading)
+                totalLight
             
         else
             backgroundColor 
@@ -107,15 +117,12 @@ type Scene () =
         //TODO: Prealocate for faster runtime
         //let colorSamples = Array.create samplesPerPixel Vector3.Zero
         for batchIndex in 0..batches-1 do
-            //let colorSamplesBatch = [|for i in 1..batchSize -> async {return rayTraceBase ray px py i}|]
-            //let colorsBatch =  colorSamplesBatch |> Async.Parallel |> Async.RunSynchronously
-            let colorsBatch = Array.Parallel.map (fun i -> rayTraceBase ray px py i batchIndex) batchIndices
+            let colorSamplesBatch = Array.map (fun i -> async {return rayTraceBase ray px py i batchIndex}) batchIndices
+            let colorsBatch =  colorSamplesBatch |> Async.Parallel |> Async.RunSynchronously
+            //let colorsBatch = Array.Parallel.map (fun i -> rayTraceBase ray px py i batchIndex) batchIndices
             Array.blit colorsBatch 0 colorSamples (batchIndex*batchSize) batchSize 
         let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colorSamples)/(float32)samplesPerPixel
         Array.blit colorSamplesClear 0 colorSamples 0 samplesPerPixel 
-        //V3 Slowest
-        //let colors = [|for i in 1..samples -> rayTraceBaseAsync ray px py i |> Async.RunSynchronously|]
-        //let avgColor = if Array.isEmpty colors then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
         //printfn "Completed Ray for pixels (%i,%i)" px py
         //async {printfn "Completed Ray for pixels (%i,%i)" px py} |> Async.StartAsTask |> ignore
         //Gamma correct TODO: refactor
