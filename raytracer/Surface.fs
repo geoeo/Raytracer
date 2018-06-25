@@ -30,6 +30,7 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
     default this.SampleCount = 0
     default this.PDF = 1.0f
     default this.BRDF = this.Material.Albedo
+    //TODO: Preallocate Memory to avoid runtime allocation
     default this.GenerateSamples (incommingRay : Ray) (t : LineParameter) (depthLevel : int) = 
         [|
             for _ in 1..this.SampleCount do
@@ -37,8 +38,6 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
                 let shading : Material.Color = this.BRDF*cosOfIncidence / (this.PDF*this.MCNormalization)
                 yield (outRay , shading)
         |]
-
-//let ToSurface x = upcast x : Surface
 
 
 type NoSurface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
@@ -58,7 +57,7 @@ let findClosestIntersection (ray : Ray) (surfaces : Surface array) =
 type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id,geometry,material)
 
-    override this.SampleCount = 4
+    override this.SampleCount = 6
     override this.PDF = 1.0f / (2.0f * MathF.PI)
     override this.BRDF = this.Material.Albedo / MathF.PI
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =

@@ -17,8 +17,12 @@ type Scene () =
 
     let width = 800
     let height = 640
-    let samples = 16
+    let samplesPerPixel = 4
     let batchSize = 4
+    let batches = samplesPerPixel / batchSize
+    let batchIndices = [|1..batchSize|]
+    let colorSamples = Array.create samplesPerPixel Vector3.Zero
+    let colorSamplesClear = Array.create samplesPerPixel Vector3.Zero
 
     // let frameBuffer = Array2D.create width height defaultColor
     let frameBuffer = Array2D.create width height Vector4.Zero
@@ -69,12 +73,12 @@ type Scene () =
                 accEmitted + backgroundColor*accScatter
 
 
-    let rayTraceBase (ray : Ray) px py iteration = 
+    let rayTraceBase (ray : Ray) px py iteration batchIndex = 
         let dotLookAtAndTracingRay = Vector3.Dot(Vector3.Normalize(lookAt),ray.Direction)
         let (realSolution,t,surface) = findClosestIntersection ray surfaces
         let surfaceGeometry = surface.Geometry
         if surfaceGeometry.IntersectionAcceptable realSolution t dotLookAtAndTracingRay (PointForRay ray t) then
-            if iteration = 1 then writeToDepthBuffer t px py
+            if iteration = 1 && batchIndex = 0 then writeToDepthBuffer t px py
 
             let currentTraceDepth = 0us
             let emittedRadiance = surface.Emitted
@@ -100,13 +104,15 @@ type Scene () =
         //let colors =  colorSamples |> Async. Parallel |> Async.RunSynchronously
         //let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
         //V2 - Fastest
-        let colorSamples = Array.create samples Vector3.Zero
-        let batches = samples / batchSize
+        //TODO: Prealocate for faster runtime
+        //let colorSamples = Array.create samplesPerPixel Vector3.Zero
         for batchIndex in 0..batches-1 do
-            let colorSamplesBatch = [|for i in 1..batchSize -> async {return rayTraceBase ray px py i}|]
-            let colorsBatch =  colorSamplesBatch |> Async.Parallel |> Async.RunSynchronously
+            //let colorSamplesBatch = [|for i in 1..batchSize -> async {return rayTraceBase ray px py i}|]
+            //let colorsBatch =  colorSamplesBatch |> Async.Parallel |> Async.RunSynchronously
+            let colorsBatch = Array.Parallel.map (fun i -> rayTraceBase ray px py i batchIndex) batchIndices
             Array.blit colorsBatch 0 colorSamples (batchIndex*batchSize) batchSize 
-        let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colorSamples)/(float32)samples
+        let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colorSamples)/(float32)samplesPerPixel
+        Array.blit colorSamplesClear 0 colorSamples 0 samplesPerPixel 
         //V3 Slowest
         //let colors = [|for i in 1..samples -> rayTraceBaseAsync ray px py i |> Async.RunSynchronously|]
         //let avgColor = if Array.isEmpty colors then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
