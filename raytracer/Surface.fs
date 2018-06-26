@@ -172,8 +172,7 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let reflectShading : Material.Color = this.BRDF*reflectProb
         if reflectProb = 1.0f then //TODO: Maybe round
             samplesArray.SetValue((reflectRay,reflectShading),0)
-            //ReflectOnlySamplesArray
-            (1,[|(reflectRay,reflectShading)|])
+            (1,samplesArray)
         else
             let refractRay = Ray(positionOnSurface,refractionDir)
             let refractShading : Material.Color = this.BRDF*(1.0f - reflectProb)
@@ -181,7 +180,7 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
             samplesArray.SetValue((reflectRay,2.0f*reflectShading),0)
             samplesArray.SetValue((refractRay, 2.0f*refractShading),1)
             (2,samplesArray)
-            //(this.SampleCount,[|(reflectRay,reflectShading);(refractRay, refractShading)|])
+
 
 
 
