@@ -17,7 +17,7 @@ type Scene () =
 
     let width = 800
     let height = 640
-    let samplesPerPixel = 16
+    let samplesPerPixel = 32
     let batchSize = 8
     let batches = samplesPerPixel / batchSize
     let batchIndices = [|1..batchSize|]
@@ -111,12 +111,7 @@ type Scene () =
         let rot = Rotation cameraWS
         let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
         let ray = Ray(cameraWS.Translation, dirWS)
-        // V1 - Slow (A lot of GC because of async blocks!)
-        //let colorSamples = [|for i in 1..samples -> rayTraceBaseAsync ray px py i|]
-        //let colors =  colorSamples |> Async. Parallel |> Async.RunSynchronously
-        //let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colors)/(float32)samples
         //V2 - Fastest
-        //TODO: Prealocate for faster runtime
         //let colorSamples = Array.create samplesPerPixel Vector3.Zero
         for batchIndex in 0..batches-1 do
             let colorSamplesBatch = Array.map (fun i -> async {return rayTraceBase ray px py i batchIndex}) batchIndices
