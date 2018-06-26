@@ -14,34 +14,39 @@ let randomState = new Random()
         
 [<AbstractClass>]
 type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
-    abstract member Scatter: Ray -> LineParameter -> int -> bool*Ray*Angle
+    //let mutable samplesArray  = Array.zeroCreate<Ray*Raytracer.Material.Color> this.SampleCount
+
+    abstract member Scatter: Ray -> LineParameter -> int -> bool*Ray*Cosine
     abstract member Emitted : Material.Color 
     abstract member SampleCount : int
     abstract member PDF : float32
     abstract member BRDF : Raytracer.Material.Color
-    abstract member GenerateSamples : Ray -> LineParameter -> int -> (Ray* Material.Color)[]
+    abstract member GenerateSamples : Ray -> LineParameter -> int -> (Ray* Material.Color)[]->(int*(Ray* Material.Color)[])
+
     member this.ID = id
     member this.Geometry = geometry
     member this.Material = material
-    member this.MCNormalization = MathF.Max((float32)this.SampleCount, 1.0f)
+    //member this.MCNormalization = MathF.Max((float32)this.SampleCount, 1.0f)
+    member this.MCComputeBRDF cosOfIncidence = this.BRDF*(cosOfIncidence/(this.PDF*(float32)this.SampleCount))
+    member this.ComputeSample (b : bool , ray : Ray , cosOfIncidience : Cosine) = (ray, this.MCComputeBRDF cosOfIncidience)
+    member this.SamplesArray  = Array.zeroCreate<Ray*Raytracer.Material.Color> this.SampleCount 
 
     default this.Scatter _ _ _ = (true,Ray(Vector3.UnitX,Vector3.UnitX),1.0f)
     default this.Emitted = this.Material.Emmitance
     default this.SampleCount = 0
     default this.PDF = 1.0f
     default this.BRDF = this.Material.Albedo
-    //TODO: Preallocate Memory to avoid runtime allocation
-    default this.GenerateSamples (incommingRay : Ray) (t : LineParameter) (depthLevel : int) = 
-        [|
-            for _ in 1..this.SampleCount do
-                let (doesRayContribute,outRay,cosOfIncidence) = this.Scatter incommingRay t (depthLevel)
-                let shading : Material.Color = this.BRDF*cosOfIncidence / (this.PDF*this.MCNormalization)
-                yield (outRay , shading)
-        |]
+    default this.GenerateSamples (incommingRay : Ray) (t : LineParameter) (depthLevel : int) samplesArray  = 
+        for i in 0..this.SampleCount-1 do
+            let shading = this.ComputeSample (this.Scatter incommingRay t depthLevel)
+            samplesArray.SetValue(shading,i)
+        (this.SampleCount,samplesArray)
 
 
 type NoSurface(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id, geometry, material)
+
+    override this.GenerateSamples _ _ _ _ = (0,this.SamplesArray)
 
 let findClosestIntersection (ray : Ray) (surfaces : Surface array) =
     let mutable (bMin,tMin,vMin : Surface) = (false,Single.MaxValue, upcast (NoSurface(0UL,NotHitable(),Raytracer.Material.Material(Vector3.Zero))))
@@ -57,7 +62,7 @@ let findClosestIntersection (ray : Ray) (surfaces : Surface array) =
 type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Material) =
     inherit Surface(id,geometry,material)
 
-    override this.SampleCount = 6
+    override this.SampleCount = 4
     override this.PDF = 1.0f / (2.0f * MathF.PI)
     override this.BRDF = this.Material.Albedo / MathF.PI
     override this.Scatter (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
@@ -78,8 +83,6 @@ type Lambertian(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         //let outDir = Vector3.Normalize(normal)
         let outRay = Ray(positionOnSurface,outDir,this.ID)
         (true,outRay,cosOfIncidence)
-
-
 
 type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, fuzz : float32) =
     inherit Surface(id,geometry,material)
@@ -111,16 +114,15 @@ type Metal(id: ID, geometry : Hitable, material : Raytracer.Material.Material, f
 type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Material, refractiveIndex : float32) =
     inherit Surface(id,geometry,material)
 
-    member this.RefractiveIndex = refractiveIndex
+    override this.SampleCount = 2
 
+    member this.RefractiveIndex = refractiveIndex
     //https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
     member this.SchlickApprx (cos_incidence : float32) (refractiveIncidenceFactor : float32) (refractiveTransmissionFactor : float32) =
         let R0 = MathF.Pow((refractiveTransmissionFactor-refractiveIncidenceFactor)/(refractiveTransmissionFactor+refractiveIncidenceFactor),2.0f)
         R0 + (1.0f - R0)*MathF.Pow((1.0f - cos_incidence),5.0f)
-
     member this.Reflect (incommingRay : Ray) (normalToSurface : Normal) 
         = incommingRay.Direction - 2.0f*Vector3.Dot(incommingRay.Direction,normalToSurface)*normalToSurface 
-
     member this.Refract (incommingDirection : Direction) (normalToSurface : Normal) (refractiveIncidenceOverTransmission : float32) (cos_incidence : float32) =
         let discriminant = 1.0f - (Square refractiveIncidenceOverTransmission)*(1.0f - Square cos_incidence)
         if discriminant > 0.0f then 
@@ -128,7 +130,6 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
             (true, Vector3.Normalize(refracted))
         // total internal refleciton
         else (false, Vector3.Zero) 
-    override this.SampleCount = 1
     ///<summary>
     /// Returns: (Reflect Probability,intersection Position,Reflection Dir, Refraction Dir)
     /// </summary>
@@ -165,16 +166,22 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
             let refractRay = Ray(positionOnSurface,refractionDir)
             // (true,refractRay,attenuationDepthAdjusted)
             (true,refractRay,1.0f)
-    override this.GenerateSamples (incommingRay : Ray) (t : LineParameter) (depthLevel : int) =
+
+    override this.GenerateSamples (incommingRay : Ray) (t : LineParameter) (depthLevel : int) samplesArray =
         let (reflectProb, positionOnSurface, reflectDir, refractionDir) = this.CalcFresnel incommingRay t depthLevel
         let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)
         let reflectShading : Material.Color = this.BRDF*reflectProb // / (this.PDF*this.MCNormalization)
         if reflectProb = 1.0f then //TODO: Maybe round
-            [|(reflectRay,reflectShading)|]
+            samplesArray.SetValue((reflectRay,reflectShading),0)
+            //ReflectOnlySamplesArray
+            (1,[|(reflectRay,reflectShading)|])
         else
             let refractRay = Ray(positionOnSurface,refractionDir)
             let refractShading : Material.Color = this.BRDF*(1.0f - reflectProb) // / (this.PDF*this.MCNormalization)
-            [|(reflectRay,reflectShading);(refractRay, refractShading)|]
+            samplesArray.SetValue((reflectRay,reflectShading),0)
+            samplesArray.SetValue((refractRay, refractShading),1)
+            (2,samplesArray)
+            //(this.SampleCount,[|(reflectRay,reflectShading);(refractRay, refractShading)|])
 
 
 
