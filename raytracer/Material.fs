@@ -2,7 +2,7 @@ module Raytracer.Material
 
 open System.Numerics
 open Raytracer.Numerics
-open SixLabors.ImageSharp
+open SixLabors.ImageSharp.PixelFormats
 
 type Color = Vector3
 
