@@ -87,6 +87,7 @@ type Scene () =
                 emittedRadiance
             else 
                 let eMCAdjusted = emittedRadiance / surface.MCNormalization
+                //TODO: investigate parallel map
                 let rayTraces = raySamples  |>  Array.map ((fun (o ,s) -> (currentTraceDepth,o,emittedRadiance,s) ) >> rayTrace) 
                 Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
             
