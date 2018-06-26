@@ -115,4 +115,4 @@ let planes_scene_2 : Surface list = [
     Lambertian(assignIDAndIncrement id,Plane(new System.Numerics.Plane((SurfaceNormal 0.0f 0.0f 1.0f),30.0f),Some ((Vector3(-5.0f,10.0f,-30.0f))),Some 25.0f,Some 20.0f), Material(Rgba32.IndianRed))
     ]
 
-let scene_spheres = List.concat [spheres_scene_2;planes_simple;lights]
+let scene_spheres = List.concat [spheres_scene_2;planes_scene_2;lights]

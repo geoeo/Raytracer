@@ -26,8 +26,7 @@ type Surface(id: ID, geometry : Hitable, material : Raytracer.Material.Material)
     member this.ID = id
     member this.Geometry = geometry
     member this.Material = material
-    //member this.MCNormalization = MathF.Max((float32)this.SampleCount, 1.0f)
-    member this.MCComputeBRDF cosOfIncidence = this.BRDF*(cosOfIncidence/(this.PDF*(float32)this.SampleCount))
+    member this.MCComputeBRDF cosOfIncidence = this.BRDF*(cosOfIncidence/this.PDF)
     member this.ComputeSample (b : bool , ray : Ray , cosOfIncidience : Cosine) = (ray, this.MCComputeBRDF cosOfIncidience)
     member this.SamplesArray  = Array.zeroCreate<Ray*Raytracer.Material.Color> this.SampleCount 
 
@@ -170,16 +169,17 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
     override this.GenerateSamples (incommingRay : Ray) (t : LineParameter) (depthLevel : int) samplesArray =
         let (reflectProb, positionOnSurface, reflectDir, refractionDir) = this.CalcFresnel incommingRay t depthLevel
         let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)
-        let reflectShading : Material.Color = this.BRDF*reflectProb // / (this.PDF*this.MCNormalization)
+        let reflectShading : Material.Color = this.BRDF*reflectProb
         if reflectProb = 1.0f then //TODO: Maybe round
             samplesArray.SetValue((reflectRay,reflectShading),0)
             //ReflectOnlySamplesArray
             (1,[|(reflectRay,reflectShading)|])
         else
             let refractRay = Ray(positionOnSurface,refractionDir)
-            let refractShading : Material.Color = this.BRDF*(1.0f - reflectProb) // / (this.PDF*this.MCNormalization)
-            samplesArray.SetValue((reflectRay,reflectShading),0)
-            samplesArray.SetValue((refractRay, refractShading),1)
+            let refractShading : Material.Color = this.BRDF*(1.0f - reflectProb)
+            // Since this is a "fake brdf" we need to multiply by 2 since we are diving by the sample count
+            samplesArray.SetValue((reflectRay,2.0f*reflectShading),0)
+            samplesArray.SetValue((refractRay, 2.0f*refractShading),1)
             (2,samplesArray)
             //(this.SampleCount,[|(reflectRay,reflectShading);(refractRay, refractShading)|])
 

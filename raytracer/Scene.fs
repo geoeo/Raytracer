@@ -17,7 +17,7 @@ type Scene () =
 
     let width = 800
     let height = 640
-    let samplesPerPixel = 8
+    let samplesPerPixel = 16
     let batchSize = 8
     let batches = samplesPerPixel / batchSize
     let batchIndices = [|1..batchSize|]
@@ -32,8 +32,7 @@ type Scene () =
     let backgroundColor = Vector3.Zero
     let surfaces : (Surface array) = scene_spheres |> Array.ofList
 
-        // let lightWS = Vector3(4.0f, 3.0f, -5.0f)
-
+    //TODO: Refactor this into camera
     let cameraOriginWS = Vector3(-3.0f,6.0f,15.0f)
     let lookAt = Vector3(-1.0f,1.0f,-10.0f)
 
@@ -68,11 +67,12 @@ type Scene () =
                     //let eMCAdjusted = e / surface.MCNormalization
                     //let rayTraces = raySamples  |>  Array.map ((fun (o ,s) -> (currentTraceDepth,o,e,accScatter*s) ) >> rayTrace) 
                     //Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
-                    let mutable totalLight = emittedRadiance / (float32)validSamples
+                    //let mutable totalLight = emittedRadiance / (float32)validSamples
+                    let mutable totalReflectedLight = Vector3.Zero
                     for i in 0..validSamples-1 do
                         let (ray,shading) = raySamples.[i]
-                        totalLight <- totalLight + rayTrace (currentTraceDepth,ray,emittedRadiance,accScatter*shading)
-                    totalLight
+                        totalReflectedLight <- totalReflectedLight + rayTrace (currentTraceDepth,ray,emittedRadiance,accScatter*shading)
+                    emittedRadiance + totalReflectedLight/(float32)validSamples
                 
             else 
                 accEmitted + backgroundColor*accScatter
@@ -95,11 +95,12 @@ type Scene () =
                 //let eMCAdjusted = emittedRadiance / surface.MCNormalization
                 //let rayTraces = raySamples  |>  Array.map ((fun (o ,s) -> (currentTraceDepth,o,emittedRadiance,s) ) >> rayTrace) 
                 //Array.sumBy (fun x -> eMCAdjusted + x) rayTraces
-                let mutable totalLight = emittedRadiance / (float32)validSamples
+                // let mutable totalLight = emittedRadiance / (float32)validSamples
+                let mutable totalReflectedLight = Vector3.Zero
                 for i in 0..validSamples-1 do
                     let (ray,shading) = raySamples.[i]
-                    totalLight <- totalLight + rayTrace (currentTraceDepth,ray,emittedRadiance,shading)
-                totalLight
+                    totalReflectedLight <- totalReflectedLight + rayTrace (currentTraceDepth,ray,emittedRadiance,shading)
+                emittedRadiance + totalReflectedLight/(float32)validSamples
             
         else
             backgroundColor 
