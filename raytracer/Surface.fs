@@ -170,7 +170,7 @@ type Dielectric(id: ID, geometry : Hitable, material : Raytracer.Material.Materi
         let (reflectProb, positionOnSurface, reflectDir, refractionDir) = this.CalcFresnel incommingRay t depthLevel
         let reflectRay = Ray(positionOnSurface,reflectDir,this.ID)
         let reflectShading : Material.Color = this.BRDF*reflectProb
-        if reflectProb = 1.0f then //TODO: Maybe round
+        if Round reflectProb 3 = 1.0f then 
             samplesArray.SetValue((reflectRay,reflectShading),0)
             (1,samplesArray)
         else

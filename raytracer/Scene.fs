@@ -18,8 +18,8 @@ type Scene () =
 
     let width = 800
     let height = 640
-    let samplesPerPixel = 1
-    let batchSize = 1
+    let samplesPerPixel = 8
+    let batchSize = 8
     let batches = samplesPerPixel / batchSize
     let batchIndices = [|1..batchSize|]
     let colorSamples = Array.create samplesPerPixel Vector3.Zero
