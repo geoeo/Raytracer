@@ -11,6 +11,7 @@ type Offset = float32
 type Radius = float32
 type LineParameter = float32
 type Point = Vector3
+type Cosine = float32
 
 /// Space inwhich points are compared if they are inside a rectangle
 /// Plane is XY
