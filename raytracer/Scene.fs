@@ -60,7 +60,7 @@ type Scene () =
                 let s = accScatter*scatteredShading
                 match doesRayContribute with
                     | true -> (rayTrace outRay newTraceDepth e s)
-                    | false -> emittedShading
+                    | false -> e
             else 
                accEmitted + backgroundColor*accScatter
 
