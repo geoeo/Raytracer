@@ -73,8 +73,7 @@ type Scene () =
                     for i in 0..validSamples-1 do
                         let (ray,shading) = raySamples.[i]
                         totalReflectedLight <- totalReflectedLight + shading*rayTrace currentTraceDepth ray
-                    emittedRadiance + totalReflectedLight/(float32)validSamples
-                
+                    emittedRadiance + totalReflectedLight/(float32)validSample               
             else 
                 backgroundColor
 
