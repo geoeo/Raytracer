@@ -14,6 +14,7 @@
     <Compile Include="Geometry/Core.fs" />
     <Compile Include="Geometry/Sphere.fs" />
     <Compile Include="Geometry/Plane.fs" />
+    <Compile Include="Geometry/AABB.fs" />
     <Compile Include="Surface.fs" />
     <Compile Include="SceneDefinitions.fs" />
     <Compile Include="Scene.fs" />
