@@ -3,7 +3,8 @@ module Raytracer.SceneDefinitions
 open System.Numerics
 open SixLabors.ImageSharp.PixelFormats
 open Raytracer.Surface
-open Raytracer.Geometry
+open Raytracer.Geometry.Sphere
+open Raytracer.Geometry.Plane
 open Raytracer.Material
 open Raytracer.Numerics
 

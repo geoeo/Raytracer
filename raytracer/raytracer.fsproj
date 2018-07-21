@@ -11,7 +11,9 @@
     <Compile Include="Numerics.fs" />
     <Compile Include="Camera.fs" />
     <Compile Include="Material.fs" />
-    <Compile Include="Geometry.fs" />
+    <Compile Include="Geometry/Core.fs" />
+    <Compile Include="Geometry/Sphere.fs" />
+    <Compile Include="Geometry/Plane.fs" />
     <Compile Include="Surface.fs" />
     <Compile Include="SceneDefinitions.fs" />
     <Compile Include="Scene.fs" />

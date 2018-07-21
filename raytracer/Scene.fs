@@ -7,7 +7,7 @@ open System.IO
 open System
 open System.Numerics
 open Raytracer.Camera
-open Raytracer.Geometry
+open Raytracer.Geometry.Core
 open Raytracer.Numerics
 open Raytracer.Surface
 open Raytracer.SceneDefinitions
@@ -102,6 +102,7 @@ type Scene () =
         let ray = Ray(cameraWS.Translation, dirWS)
         //V2 - Fastest
         for batchIndex in 0..batches-1 do
+            //TODO: Remove this map for / Preallocate array
             let colorSamplesBatch = Array.map (fun i -> async {return rayTraceBase ray px py i batchIndex}) batchIndices
             let colorsBatch =  colorSamplesBatch |> Async.Parallel |> Async.RunSynchronously
             Array.blit colorsBatch 0 colorSamples (batchIndex*batchSize) batchSize 

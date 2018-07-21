@@ -2,7 +2,7 @@ module Raytracer.Surface
 
 open System
 open System.Numerics
-open Raytracer.Geometry
+open Raytracer.Geometry.Core
 //open Raytracer.Materials
 open Henzai.Numerics
 open Raytracer.Numerics
