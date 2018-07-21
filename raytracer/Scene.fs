@@ -8,7 +8,6 @@ open System
 open System.Numerics
 open Raytracer.Camera
 open Raytracer.Geometry
-open Raytracer.Material
 open Raytracer.Numerics
 open Raytracer.Surface
 open Raytracer.SceneDefinitions
@@ -102,11 +101,9 @@ type Scene () =
         let dirWS = Vector3.Normalize(Vector3.TransformNormal(dirCS,rot))
         let ray = Ray(cameraWS.Translation, dirWS)
         //V2 - Fastest
-        //let colorSamples = Array.create samplesPerPixel Vector3.Zero
         for batchIndex in 0..batches-1 do
             let colorSamplesBatch = Array.map (fun i -> async {return rayTraceBase ray px py i batchIndex}) batchIndices
             let colorsBatch =  colorSamplesBatch |> Async.Parallel |> Async.RunSynchronously
-            //let colorsBatch = Array.Parallel.map (fun i -> rayTraceBase ray px py i batchIndex) batchIndices
             Array.blit colorsBatch 0 colorSamples (batchIndex*batchSize) batchSize 
         let avgColor = if Array.isEmpty colorSamples then Vector3.Zero else (Array.reduce (fun acc c -> acc+c) colorSamples)/(float32)samplesPerPixel
         Array.blit colorSamplesClear 0 colorSamples 0 samplesPerPixel 

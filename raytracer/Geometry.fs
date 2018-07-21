@@ -146,15 +146,6 @@ let ParameterToPointForRay (ray : Ray) (point : Point) =
 
 let PointForRay (ray : Ray) (t : LineParameter) = ray.Origin + t*ray.Direction
 
-// let DoesRayTransportLight (surfaces : Hitable list) (ray : Ray) (light: Hitable) = 
-//     // let t_HitLight = ParameterToPointForRay ray lightWS
-//     let (b,t_HitLight) = light.Intersect ray
-//     if light.IntersectionAcceptable b t_HitLight 1.0f then 
-//         let intersections = 
-//             seq { for surface in surfaces do yield (not (IsIntersectionInfrontOf surface ray t_HitLight))}
-//         Seq.fold (fun b1 b2 -> b1 && b2) true intersections
-//     else false
-
 let smallestIntersection (b,t,x) (b_new,t_new,x_new) =
     if t <= t_new then (b,t,x)
     else (b_new,t_new,x_new)

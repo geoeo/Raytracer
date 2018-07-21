@@ -27,6 +27,7 @@ let NDCToScreen (x_ndc , y_ndc) = 2.0f*x_ndc-1.0f , 1.0f-2.0f*y_ndc
 let AspectRatio (width:float32) (height:float32) = width/height
 
 // pixel coordiantes / sample points (X,Y) in camera space (3D)
+// focal length is implicit in the tan(alpha / 2) calc
 let ScreenToCamera (x_screen, y_screen) aspectRatio fov =
     x_screen*aspectRatio*MathF.Tan(fov/2.0f) , y_screen*MathF.Tan(fov/2.0f)
 
