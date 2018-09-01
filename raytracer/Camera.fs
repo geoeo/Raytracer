@@ -3,7 +3,7 @@ module Raytracer.Camera
 open System
 open System.Numerics
 open Raytracer.Numerics
-open Henzai.Utilities.Numerics
+open Henzai.Core.Numerics
 
 let pertrube px py width height = 
     let randVec = RandomSampling.RandomInUnitSphere_Sync()

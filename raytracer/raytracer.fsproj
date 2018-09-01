@@ -5,7 +5,7 @@
     <!--<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../henzai/Henzai.Utilities/Henzai.Utilities.csproj" />
+    <ProjectReference Include="../../henzai/Henzai.Core/Henzai.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Numerics.fs" />
